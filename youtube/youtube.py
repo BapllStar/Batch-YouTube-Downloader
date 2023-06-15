@@ -4,6 +4,8 @@ import os
 from tqdm import tqdm
 from pytube import YouTube
 from moviepy.editor import *
+from mutagen.id3 import ID3, TCOM
+from mutagen.id3 import ID3, COMM
 sg.theme('Dark')
 
 # Print ASCII art
@@ -49,6 +51,26 @@ def funcom(lame, fun):
     else:
         print("\n"+fun)
 
+def add_publisher_audio_metadata(mp3_file, comment):
+    # Open the MP3 file
+    audio = ID3(mp3_file)
+
+    # Set the comment metadata
+    audio["COMM"] = COMM(encoding=3, lang='eng', desc='', text=[comment])
+
+    # Save the changes to the MP3 file
+    audio.save()
+
+def add_publisher_video_metadata(file_path, publisher):
+    # Load the MP4 file
+    video = MP4(file_path)
+
+    # Add the publisher tag
+    video['\xa9ART'] = [publisher]  # \xa9ART corresponds to the artist or publisher tag
+
+    # Save the modified metadata back to the file
+    video.save()
+
 def MP4ToMP3(mp4, mp3):
     funcom("Converting tmp mp4 to mp3 using MoviePy","Bapll - Okay, I dunno how to convert videos to audio, so Imma call up one of my good buddies to help me... MOVIEPYYYYY!\n")
     FILETOCONVERT = AudioFileClip(mp4)
@@ -79,7 +101,7 @@ def convert_seconds(seconds):
     # Return as a formatted string
     return f"{hours_str}:{minutes_str}:{seconds_str}"
 
-
+publisher = "Bapll\'s Batch Youtube Downloader"
 
 def progress_callback(stream, chunk, bytes_remaining):
     # Calculate the progress percentage
@@ -147,6 +169,8 @@ while True:
                     # Convert to mp3
                     MP4ToMP3(f"{filePath}.mp4", filePath + ".mp3")
 
+                    add_publisher_audio_metadata(f"{filePath}.mp3", publisher)
+
                     # Remove mp4
                     os.remove(filePath + ".mp4")
                     funcom("Deleting tmp mp4","Bapll - I'm deleting that low res video, so you don't have to deal with that...")
@@ -164,6 +188,9 @@ while True:
 
                     # Close the progress bar
                     progress_bar.close()
+
+                    add_publisher_video_metadata(f"{filePath}.mp4", publisher)
+
                     funcom("\nDownload complete","\nBapll - I'm fiiiiiiniiiished!")
                     funcom(f"   path: \"{filePath}.mp4\"",f"Bapll - I put it here: \"{filePath}.mp4\"")
                 

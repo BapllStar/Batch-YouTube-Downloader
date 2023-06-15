@@ -50,7 +50,7 @@ def funcom(lame, fun):
         print("\n"+fun)
 
 def MP4ToMP3(mp4, mp3):
-    funcom("Converting tmp mp4 to mp3 using MoviePy","Bapll - Okay, I dunno how to convert videos to audio, so Imma call up one of my good buddies to help me... MOVIEPYYYYY!")
+    funcom("Converting tmp mp4 to mp3 using MoviePy","Bapll - Okay, I dunno how to convert videos to audio, so Imma call up one of my good buddies to help me... MOVIEPYYYYY!\n")
     FILETOCONVERT = AudioFileClip(mp4)
     FILETOCONVERT.write_audiofile(mp3)
     FILETOCONVERT.close()

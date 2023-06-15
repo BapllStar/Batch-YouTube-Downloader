@@ -5,6 +5,7 @@ from pytube import YouTube
 from moviepy.editor import *
 sg.theme('Dark')
 
+# Print ASCII art
 print(" /$$$$$$$                     /$$ /$$ /$$             /$$$$$$$             /$$               /$$      ")
 print("| $$__  $$                   | $$| $$| $/            | $$__  $$           | $$              | $$      ")
 print("| $$  \ $$ /$$$$$$   /$$$$$$ | $$| $$|_/$$$$$$$      | $$  \ $$ /$$$$$$  /$$$$$$    /$$$$$$$| $$$$$$$ ")
@@ -32,23 +33,23 @@ print("| $$$$$$$/|  $$$$$$/|  $$$$$/$$$$/| $$  | $$| $$|  $$$$$$/  $$$$$$$|  $$$
 print("|_______/  \______/  \_____/\___/ |__/  |__/|__/ \______/ \_______/ \_______/ \_______/|__/           ")
 print("\n\n=======================================================================================================================")
 
+layout = [
+            [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-FOLDER-'), sg.FolderBrowse()],
+            [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
+            [sg.Checkbox('Download highest res video (No audio)', key='-FULL_RES-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
+            [sg.Button('Download'), sg.Button('Cancel')
+        ]
+]
 
 def MP4ToMP3(mp4, mp3):
     FILETOCONVERT = AudioFileClip(mp4)
     FILETOCONVERT.write_audiofile(mp3)
     FILETOCONVERT.close()
 
-layout = [
-            [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-FOLDER-'), sg.FolderBrowse()],
-            [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
-            [sg.Button('Download'), sg.Button('Cancel')
-        ]
-]
-
 def generate_unique_filename(directory, base_filename):
     counter = 1
     filename = base_filename + f"-{counter}"
-    while os.path.exists(os.path.join(directory, filename + ".mp3")):
+    while os.path.exists(os.path.join(directory, filename + ".mp3")) or os.path.exists(os.path.join(directory, filename + ".mp4")):
         counter += 1
         filename = f"{base_filename}-{counter}"
     filename = f"{base_filename}-{counter}"
@@ -68,6 +69,13 @@ def convert_seconds(seconds):
     # Return as a formatted string
     return f"{hours_str}:{minutes_str}:{seconds_str}"
 
+def progress_callback(stream, chunk, bytes_remaining):
+    total_size = stream.filesize
+    bytes_downloaded = total_size - bytes_remaining
+    progress = (bytes_downloaded / total_size) * 100
+    print(f"{fileName} - Downloading... ({progress:.2f}%)")
+
+
 # Create the Window
 window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)
 
@@ -78,6 +86,9 @@ while True:
         break
     if event == '-FOLDER-':
         path = values['-FOLDER-']
+    if event == '-FULL_RES-':
+        # Toggle visibility of the 'Also download audio' checkbox
+        window['-DOWNLOAD_AUDIO-'].update(visible=values['-FULL_RES-'])
     if event == 'Download':
         file_path = values['-FILE-']  # Get the file path entered by the user
         with open(file_path, 'r') as file:
@@ -87,37 +98,45 @@ while True:
         for link in youtube_links:
             link = link.strip()  # Remove leading/trailing whitespace and newline characters
             if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
-                video = YouTube(link)
+                video = YouTube(link, on_progress_callback = progress_callback)
                 # Rest of your code for downloading and converting the video
-                print("\nBapll - Video from \"" + video.author + "\" called \"" + video.title + "\" was found!")
+                print(f"\nBapll - Video from \"{video.author}\" called \"{video.title}\" was found!")
                 print("   Duration: " + convert_seconds(video.length))
-                # Remember to add duration of the video to this ^
 
                 authorName = re.sub('[\W_]+', '', video.author)
 
-                fileName = generate_unique_filename(path + "/" + authorName, authorName)
+                fileName = generate_unique_filename(f"{path}/{authorName}", authorName)
 
-                print("\n" + fileName + " - Downloading. Please be patient...")
+                print(f"{fileName} - Downloading... (0.00%)")
+                if  values['-FULL_RES-']:
+                    video.streams.order_by('resolution').desc().first().download(filename = fileName + ".mp4", output_path = f"{path}/{authorName}")
+                    # Close the progress bar
+                    progress_bar.close()
+                    print(f"{fileName} - Download complete!")
+                else:
+                    # Donwloading the video  
+                    video.streams.filter(only_audio = True).first().download(filename = fileName + ".mp4", output_path = f"{path}/{authorName}")
+                    
+                    # Close the progress bar
+                    progress_bar.close()
+                    print(f"{fileName} - Download complete!")
 
-                # Donwloading the video  
-                video.streams.filter(only_audio = True).first().download(filename = fileName + ".mp4", output_path = path + "/" + authorName)
-                print("\n" + fileName + " - Download complete!")
     
+                    
+                    filePath = f"{path}/{authorName}/{fileName}"
+                    print(f"   path: \"{filePath}.mp4\"")
+                    # Convert to mp3
+                    print(f"\n{fileName} - Converting to mp3 file. Initiating MoviePy...")
+                    MP4ToMP3(f"{filePath}.mp4", filePath + ".mp3")
+                    print(f"\n{fileName} - Conversion complete!")
+
+                    # Remove mp4
+                    os.remove(filePath + ".mp4")
+                    print(f"\n{fileName} - Deleted temporary mp4-file")
                 
-                filePath = path + "/" + authorName + "/" + fileName
-                print("   path: \"" + filePath + ".mp4\"")
-                # Convert to mp3
-                print("\n" + fileName + " - Converting to mp3 file. Initiating MoviePy...")
-                MP4ToMP3(filePath + ".mp4", filePath + ".mp3")
-                print("\n" + fileName + " - Conversion complete!")
-
-                # Remove mp4
-                os.remove(filePath + ".mp4")
-                print("\n" + fileName + " - Deleted temporary mp4-file")
                 current_link += 1
-
-                print("\n - The job \"" + fileName + "\" has been completed!" + f"\n\n   [{current_link}/{total_links} tasks completed]\n\n=======================================================================================================================")
+                print(f"\nBapll - The job \"{fileName}\" has been completed!\n\n   [{current_link}/{total_links} tasks completed]\n\n=======================================================================================================================")
             else:
-                print("\n \"" + link + "\" isn't a YouTube link!\n\n=======================================================================================================================")
+                print(f"\n \"{link}\" isn't a YouTube link!\n\n=======================================================================================================================")
         print("\nBapll - Your program has finished :D\n\n=======================================================================================================================")
 window.close()

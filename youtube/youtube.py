@@ -113,7 +113,6 @@ def GetAudioOptions():
         next_line = youtube_links[current_line + 1].strip()
         if next_line.startswith('&'):
             audio_options = next_line[1:]
-            print(audio_options)
     return audio_options
 
 def ApplyAudioOptions(mp3_file):

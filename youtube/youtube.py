@@ -55,7 +55,9 @@ def VideoToAudio(mp4, mp3):
 def GenerateUniqueFileName(directory, base_filename):
     counter = 1
     filename = base_filename + f"-{counter}"
-    while os.path.exists(os.path.join(directory, filename + ".mp3")) or os.path.exists(os.path.join(directory, filename + ".mp4")):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    while any(file.startswith(filename) for file in os.listdir(directory)):
         counter += 1
         filename = f"{base_filename}-{counter}"
     filename = f"{base_filename}-{counter}"
@@ -109,12 +111,12 @@ def GetAudioOptions():
     audio_options = ''
     if current_line + 1 < total_lines:
         next_line = youtube_links[current_line + 1].strip()
-        if next_line.startswith("& "):
-            audio_options = next_line[1:]  
+        if next_line.startswith('&'):
+            audio_options = next_line[1:]
+            print(audio_options)
     return audio_options
 
 def ApplyAudioOptions(mp3_file):
-
     audio_options = GetAudioOptions()
 
     if audio_options:
@@ -239,8 +241,6 @@ while True:
         #endregion
 
 
-
-
         # Processing the Inputted Data
         #region Processing the Inputted Data
         # Get the file path entered by the user
@@ -252,7 +252,7 @@ while True:
             youtube_links = file.readlines()  
 
         total_lines = len(youtube_links)  # Total number of YouTube links
-        current_line = 1  # Initialize current link counter
+        current_line = 0  # Initialize current link counter
         current_links = 0
         
 
@@ -279,7 +279,7 @@ while True:
                     print("\n=======================================================================================================================")
                 continue
             
-            if not link or link.startswith("&"):
+            if not link or link.startswith('&'):
                 current_line += 1
                 continue
             #endregion
@@ -358,6 +358,6 @@ while True:
                 FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
                 print("\n=======================================================================================================================")
 
-        FunCom(f"\n\n   All {total_links} jobs done",f"\nHeeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
-        print("\n\n=======================================================================================================================")
+        FunCom(f"\n   All {total_links} jobs done",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
+        print("\n=======================================================================================================================")
 window.close()

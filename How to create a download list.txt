@@ -1,0 +1,87 @@
+============Lines============
+Youtube links should be separated by new lines.
+Link formats: "https://www.youtube.com/watch?v=<id>" or "https://youtu.be/<id>"
+
+Example:
+
+"
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+https://youtu.be/dQw4w9WgXcQ
+https://www.youtube.com/watch?v=X3HrBg--wk4
+https://www.youtube.com/watch?v=3NnIfuvEiec
+"
+
+
+
+=========Empty-Lines=========
+Empty Lines don't do anything.
+
+Example:
+
+"
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+https://youtu.be/dQw4w9WgXcQ
+
+https://www.youtube.com/watch?v=X3HrBg--wk4
+https://www.youtube.com/watch?v=3NnIfuvEiec
+"
+
+
+
+=========Commenting==========
+Comments are done with "#<comment>"
+Comments will make the program skip over what is said on that particular line.
+
+Headlines are done with "##<headline>"
+Headlines are printed in the console, when they are read.
+
+Example:
+
+"
+##Rick Astley
+# ^This will be printed in the console
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+#https://youtu.be/dQw4w9WgXcQ
+# ^This won't be read
+
+##Bapll
+# ^This will be printed in the console
+https://www.youtube.com/watch?v=X3HrBg--wk4
+https://www.youtube.com/watch?v=3NnIfuvEiec
+"
+
+
+
+========Trimming-audio=======
+Audio options (Only trimming stuff out for now) is done by doing: "& xh,xm,xs - xh,xm,xs" on the line right beneath the video you want trimmed.
+It will trim the marked part out. You can have as many "h", "m" and "s" as you want and in any order.. If not defined, the value of that particular unit is 0.
+If you write "end" instead of a "xh,xm,xs", it will cut at the end. Only write "end" once, or stuff will break.
+The command prefix is "& " (remember the space), and you can have as many commands on one line as you want.
+
+Example:
+
+"
+##Rick Astley
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+& 0s - 5s
+# The first 5 seconds of the video will be cut out.
+
+https://youtu.be/dQw4w9WgXcQ
+& 1m,2s,2s - 3m,30s
+# From 1 minute and 4 seconds to 3 minutes and 30 seconds will be cut out.
+
+
+##Bapll
+https://www.youtube.com/watch?v=X3HrBg--wk4
+& 0s - 5s& 6s - 20s
+# The first 5 seconds will be cut out, then from 6 seconds to 20 seconds will be cut out.
+
+https://www.youtube.com/watch?v=3NnIfuvEiec
+& 10s - end
+# From 10s untill the end will be cut out.
+"
+
+
+
+======Additional-info========
+Try and run any of the examples I have written here, if you are confused about what it will output.

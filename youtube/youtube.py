@@ -181,6 +181,31 @@ def ApplyAudioOptions(mp3_file):
         os.remove(filePath + ".mp3")
         FunCom("mp3 removed","There we go.")
 
+def GetCutDuration():
+    audio_options = GetAudioOptions()
+
+    cut_time = 0
+
+    if audio_options:
+
+        FunCom(f"Accounting for: \"{audio_options}\"",f"I see you have some Audio Options here... \"{audio_options}\". You're not using all of the audio?")
+
+        # Split the audio options based on '&' separator
+        options_list = audio_options.split('& ')
+        
+        # Iterate over the options and apply the cutting
+        for i in range(len(options_list)):
+            times_list = options_list[i].split(' - ')
+            start_time = ConvertToSeconds(times_list[0], duration)
+            end_time = ConvertToSeconds(times_list[1], duration)
+            cut_time += end_time - start_time
+
+        FunCom(f"Cut off {FormatSeconds(cut_time)}",f"There we go, I removed {FormatSeconds(cut_time)} from the clip!")
+        return cut_time
+    else:
+        return 0
+
+
 def DownloadVideo(file):
 
     try:
@@ -295,8 +320,7 @@ while True:
                 #endregion
 
                 authorName = re.sub('[\W_]+', '', video.author)
-
-                duration = video.length
+                duration = video.length - GetCutDuration()
 
                 if authorName not in author_durations:
                     author_durations[authorName] = duration

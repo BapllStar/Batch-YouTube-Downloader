@@ -183,14 +183,17 @@ def ApplyAudioOptions(mp3_file):
 
 def DownloadVideo(file):
 
-    # Donwloading the video  
-    file.download(filename = fileName + ".mp4", output_path = f"{path}/{authorName}")
-    
-    # Replace the progress bar with a completion message
-    progress_bar.bar_format = f"Downloaded {fileName}.mp4 successfully"
-    
-    # Close the progress bar
-    progress_bar.close()
+    try:
+        # Download the video
+        file.download(filename=fileName + ".mp4", output_path=f"{path}/{authorName}")
+
+        # Replace the progress bar with a completion message
+        progress_bar.bar_format = f"Downloaded {fileName}.mp4 successfully"
+
+        # Close the progress bar
+        progress_bar.close()
+    except pytube.exceptions.AgeRestricted:
+        FunCom("Age-restricted video detected","Hold on, bro! This video is age-restricted!")
 
 #endregion
 
@@ -202,7 +205,7 @@ layout = [
             [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
             [sg.Checkbox('Download highest res video (No audio)', key='-DOWNLOAD_VIDEO-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
             [sg.Checkbox('You want my funny commentary?', key='-FUN_COM-')],
-            [sg.Button('Download')]
+            [sg.Button('Download'), sg.Button('Check Duration')]
 ]
 
 window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)
@@ -223,6 +226,103 @@ while True:
     if event == '-DOWNLOAD_VIDEO-':
         # Toggle visibility of the 'Also download audio' checkbox
         window['-DOWNLOAD_AUDIO-'].update(visible=values['-DOWNLOAD_VIDEO-'])
+
+    if event == "Check Duration":
+        # Guard Clauses
+        #region Guard Clauses
+        if not values['-FILE-']:
+            FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
+            continue
+        #endregion
+
+
+        # Processing the Inputted Data
+        #region Processing the Inputted Data
+        # Get the file path entered by the user
+        file_path = values['-FILE-']  
+
+
+        # Read all the YouTube links from the file
+        with open(file_path, 'r') as file:
+            youtube_links = file.readlines()  
+
+        total_lines = len(youtube_links)  # Total number of YouTube links
+        current_line = 0  # Initialize current link counter
+        current_links = 0
+        
+
+        # Count links
+        total_links = 0
+        for link in youtube_links:
+            if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
+                total_links += 1
+        FunCom(f"\nFound {total_links} links",f"Imma check those durations for ya on all {total_links} videos!")
+        print("\n=======================================================================================================================")
+
+        #endregion
+
+        author_durations = {}
+
+        # For every link in the file
+        for link in youtube_links:
+            link = link.strip()
+
+            # Commenting
+            #region Handle Commenting
+            if link.startswith("#"):
+                current_line += 1
+                if link.startswith("##"):
+                    print("\n" + link.split('##')[1])
+                    print("\n=======================================================================================================================")
+                continue
+            
+            if not link or link.startswith('&'):
+                current_line += 1
+                continue
+            #endregion
+
+            # Validate the link
+            if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
+                
+                # Finding the video
+                #region Finding the video
+                video = YouTube(link)
+
+                # Rest of your code for downloading and converting the video
+                FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
+                FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
+                
+                #endregion
+
+                authorName = re.sub('[\W_]+', '', video.author)
+
+                duration = video.length
+
+                if authorName not in author_durations:
+                    author_durations[authorName] = duration
+                else:
+                    author_durations[authorName] += duration
+
+                # Set Stats for the program
+                #region Set Stats for the program
+                current_line += 1
+                current_links += 1
+                links_left = total_links - current_links
+                FunCom(f"\nThe video has been scanned\n\n   [{current_links}/{total_links} videos completed]",f"Ayo, this one's done! Only like {links_left} to go...")
+                print("\n=======================================================================================================================")
+                #endregion
+            else:
+                # If this is not a video, a comment or audio setting.
+                FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
+                print("\n=======================================================================================================================")
+
+        FunCom(f"\n   All {total_links} links scanned",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
+         # Print the total duration for each author
+        for author, duration in author_durations.items():
+            print(f"{author}: {FormatSeconds(duration)}")
+
+        print("\n=======================================================================================================================")
+
 
     # Event click download button
     if event == 'Download':

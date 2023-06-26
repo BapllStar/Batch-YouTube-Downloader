@@ -181,7 +181,7 @@ def ApplyAudioOptions(mp3_file):
         os.remove(filePath + ".mp3")
         FunCom("mp3 removed","There we go.")
 
-def GetCutDuration():
+def GetCutDuration(duration):
     audio_options = GetAudioOptions()
 
     cut_time = 0
@@ -320,7 +320,7 @@ while True:
                 #endregion
 
                 authorName = re.sub('[\W_]+', '', video.author)
-                duration = video.length - GetCutDuration()
+                duration = video.length - GetCutDuration(video.length)
 
                 if authorName not in author_durations:
                     author_durations[authorName] = duration

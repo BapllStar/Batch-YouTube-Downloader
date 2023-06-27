@@ -4,7 +4,7 @@ This program is designed for downloading a large number of YouTube videos to tra
 
 ## Project Links
 
-- Trello Board: [Batch YouTube Downloader](https://trello.com/b/drUldcw7/youtube-mc-ai)
+- Discord: [Join Team Bapll](https://discord.gg/rbk3RCJPda)
 - Bapll YouTube Channel: [Bapll](https://www.youtube.com/channel/UC6c-iFvwQJ_qO9x7lQwNFng)
 
 ## Usage

@@ -206,11 +206,10 @@ def GetCutDuration(duration):
         return 0
 
 
-def DownloadVideo(file):
-
+def DownloadVideo(video, fileName):
     try:
         # Download the video
-        file.download(filename=fileName + ".mp4", output_path=f"{path}/{authorName}")
+        video.download(filename=fileName + ".mp4", output_path=f"{path}/{authorName}")
 
         # Replace the progress bar with a completion message
         progress_bar.bar_format = f"Downloaded {fileName}.mp4 successfully"
@@ -218,7 +217,7 @@ def DownloadVideo(file):
         # Close the progress bar
         progress_bar.close()
     except pytube.exceptions.AgeRestricted:
-        FunCom("Age-restricted video detected","Hold on, bro! This video is age-restricted!")
+        FunCom("Age-restricted video detected", "Hold on, bro! This video is age-restricted.")
 
 #endregion
 
@@ -438,7 +437,7 @@ while True:
                     # Set up the tqdm progress bar
                     progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
 
-                    DownloadVideo(video.streams.filter(only_audio = True).first())
+                    DownloadVideo(video.streams.filter(only_audio=True).first(),fileName)
 
                     FunCom("\nDownload complete","\nI'm dooooone!")
 

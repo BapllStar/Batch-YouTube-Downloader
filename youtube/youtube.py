@@ -168,19 +168,10 @@ def ApplyAudioOptions(audio_clip, audio_options):
     if post > 0 and post < clip_duration:
         subclip = audio_clip.subclip(post, clip_duration)
         subclip_list.append(subclip)
-        #nameIndex += 1
-        #subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
-
-    # Close the audio clips
-    audio_clip.close()
-    #subclip.close()
     
     FunCom("Audio options successfully aplied","Oh, he's done. Good job, MoviePy!")
-    FunCom("Removing original mp3","Hey, MoviePy... You forgot to de- oh, forget it. I'll just delete the original mp3... Hold oooon.")
-    os.remove(filePath + ".mp3")
-    FunCom("mp3 removed","There we go.")
 
-    return clip_list
+    return subclip_list
 
 def GetCutDuration(duration):
     audio_options = GetAudioOptions()
@@ -242,6 +233,14 @@ def CutAudio(audio_clip, size):
         subclip_list.append(subclip)
     
     return subclip_list
+
+def MergeLists(l1,l2):
+    for thing in l2:
+        l1.append(thing)
+
+def CloseClips(list):
+    for i in range(len(list)):
+        list[0].close()
 
 #endregion
 
@@ -492,9 +491,7 @@ while True:
 
                         # Options
                         audio_clip = AudioFileClip(f"{filePath}.mp3")
-
                         clip_list = [audio_clip]
-
                         if audio_options:
                             clip_list = ApplyAudioOptions(audio_clip, audio_options)
                                 
@@ -506,19 +503,24 @@ while True:
                             old_clip_list = clip_list
                             clip_list = []
                             for clip in old_clip_list:
-                                clip_list = CutAudio(clip, cut_size)
+                                MergeLists(clip_list,CutAudio(clip, cut_size))
 
+                        
                         # Exporting audio files
-                        FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies!")
+                        FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies! Wait, is that you, MoviePy?")
                         
                         for i in range(len(clip_list)):
                             file_name = f"{filePath}-{i+1}.mp3"
-                            clip_list[0].write_audiofile(file_name)
-                            clip_list[0].close()
+                            clip_list[i].write_audiofile(file_name)
 
-                        audio_clip.close()
+                        FunCom("All new audiofiles done", "Yup, he's done now.")
+                        
+                        FunCom("Removing original mp3", "Oh, the mom mp3 died. I guess you're gonna have to take care of those new mp3 files...")
+                        # Remove original clip
+                        CloseClips(clip_list)
                         os.remove(f"{filePath}.mp3")
-                    
+                        FunCom("Removal done", "Mom is dead a burried now.")
+
 
                 if  values['-DOWNLOAD_VIDEO-']:
                     

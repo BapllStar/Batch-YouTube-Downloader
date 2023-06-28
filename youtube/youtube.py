@@ -1,6 +1,7 @@
 import PySimpleGUI as sg
 import re
 import os
+import math
 from tqdm import tqdm
 from pytube import YouTube
 from moviepy.editor import *
@@ -115,71 +116,71 @@ def GetAudioOptions():
             audio_options = next_line[1:]
     return audio_options
 
-def ApplyAudioOptions(mp3_file):
-    audio_options = GetAudioOptions()
+def ApplyAudioOptions(audio_clip, audio_options):
+    FunCom(f"Applying Audio Options: \"{audio_options}\" using MoviePy",f"\"{audio_options}\"\n^ Ahem! What is this? Well, I'm not doing that... MOVIEPYYY!")
 
-    if audio_options:
+    # Split the audio options based on '&' separator
+    options_list = audio_options.split('& ')
+    
+    # Set the duration of the audio clip
+    clip_duration = audio_clip.duration
+    
+    #nameIndex = 0
 
-        FunCom(f"Applying Audio Options: \"{audio_options}\" using MoviePy",f"\"{audio_options}\"\n^ Ahem! What is this? Well, I'm not doing that... MOVIEPYYY!")
+    subclip_list = []
 
-        # Split the audio options based on '&' separator
-        options_list = audio_options.split('& ')
-
-        # Load the MP3 file as an AudioFileClip
-        audio_clip = AudioFileClip(mp3_file)
+    # Add the audio before the first start_time
+    post = ConvertToSeconds(options_list[0].split(' - ')[0], clip_duration)
+    if post < 0 or post > clip_duration:
+        FunCom(f"Cutting post ({post}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({clip_duration})!")
+    if post > 0 and post < clip_duration:
+        subclip = audio_clip.subclip(0, post)
+        subclip_list.append(subclip)
+        #nameIndex += 1
+        #subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
+    
+    # Iterate over the options and apply the cutting
+    for i in range(len(options_list) - 1):
+        start_time = ConvertToSeconds(options_list[i].split(' - ')[1], clip_duration)
+        end_time = ConvertToSeconds(options_list[i+1].split(' - ')[0], clip_duration)
         
-        # Set the duration of the audio clip
-        duration = audio_clip.duration
+        # Ensure the start and end times are within the duration
+        start_time = min(start_time, clip_duration)
+        end_time = min(end_time, clip_duration)
         
-        nameIndex = 0
+        if start_time >= end_time:
+            FunCom(f"Cutting post ({end_time}) overlaps with other cutting post ({start_time})",f"I don't understand this. A cutting post ({start_time}) can't overlap with another ({end_time}), can it?")
+        if start_time < 0 or start_time > clip_duration:
+            FunCom(f"Cutting post ({start_time}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({start_time}) is trying to escape the duration of the video ({clip_duration})!")
+        if end_time < 0 or end_time > clip_duration:
+            FunCom(f"Cutting post ({end_time}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({stop_time}) is trying to escape the duration of the video ({clip_duration})!")
+        if start_time > 0 and start_time < clip_duration and end_time > 0 and end_time < clip_duration:
+            subclip = audio_clip.subclip(start_time, end_time)
+            subclip_list.append(subclip)
+            #nameIndex += 1
+            #subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
 
-        # Add the audio before the first start_time
-        post = ConvertToSeconds(options_list[0].split(' - ')[0], duration)
-        if post < 0 or post > duration:
-            FunCom(f"Cutting post ({post}) is out of bounds ({duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({duration})!")
-        if post > 0 and post < duration:
-            subclip = audio_clip.subclip(0, post)
-            nameIndex += 1
-            subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
-        
-        # Iterate over the options and apply the cutting
-        for i in range(len(options_list) - 1):
-            start_time = ConvertToSeconds(options_list[i].split(' - ')[1], duration)
-            end_time = ConvertToSeconds(options_list[i+1].split(' - ')[0], duration)
-            
-            # Ensure the start and end times are within the duration
-            start_time = min(start_time, duration)
-            end_time = min(end_time, duration)
-            
-            if start_time >= end_time:
-                FunCom(f"Cutting post ({end_time}) overlaps with other cutting post ({start_time})",f"I don't understand this. A cutting post ({start_time}) can't overlap with another ({end_time}), can it?")
-            if start_time < 0 or start_time > duration:
-                FunCom(f"Cutting post ({start_time}) is out of bounds ({duration})", f"Houston, we have a problem. It seems that the cutting post ({start_time}) is trying to escape the duration of the video ({duration})!")
-            if end_time < 0 or end_time > duration:
-                FunCom(f"Cutting post ({end_time}) is out of bounds ({duration})", f"Houston, we have a problem. It seems that the cutting post ({stop_time}) is trying to escape the duration of the video ({duration})!")
-            if start_time > 0 and start_time < duration and end_time > 0 and end_time < duration:
-                subclip = audio_clip.subclip(start_time, end_time)
-                nameIndex += 1
-                subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
+    
+    # Add the audio after the last end_time        
+    post = ConvertToSeconds(options_list[-1].split(' - ')[1], clip_duration)
+    if post < 0 or post > clip_duration:
+        FunCom(f"Cutting post ({post}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({clip_duration})!")
+    if post > 0 and post < clip_duration:
+        subclip = audio_clip.subclip(post, clip_duration)
+        subclip_list.append(subclip)
+        #nameIndex += 1
+        #subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
 
-        
-        # Add the audio after the last end_time        
-        post = ConvertToSeconds(options_list[-1].split(' - ')[1], duration)
-        if post < 0 or post > duration:
-            FunCom(f"Cutting post ({post}) is out of bounds ({duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({duration})!")
-        if post > 0 and post < duration:
-            subclip = audio_clip.subclip(post, duration)
-            nameIndex += 1
-            subclip.write_audiofile(f"{filePath}-{nameIndex}.mp3")
+    # Close the audio clips
+    audio_clip.close()
+    #subclip.close()
+    
+    FunCom("Audio options successfully aplied","Oh, he's done. Good job, MoviePy!")
+    FunCom("Removing original mp3","Hey, MoviePy... You forgot to de- oh, forget it. I'll just delete the original mp3... Hold oooon.")
+    os.remove(filePath + ".mp3")
+    FunCom("mp3 removed","There we go.")
 
-        # Close the audio clips
-        audio_clip.close()
-        subclip.close()
-
-        FunCom("Audio options successfully aplied","Oh, he's done. Good job, MoviePy!")
-        FunCom("Removing original mp3","Hey, MoviePy... You forgot to de- oh, forget it. I'll just delete the original mp3... Hold oooon.")
-        os.remove(filePath + ".mp3")
-        FunCom("mp3 removed","There we go.")
+    return clip_list
 
 def GetCutDuration(duration):
     audio_options = GetAudioOptions()
@@ -205,7 +206,6 @@ def GetCutDuration(duration):
     else:
         return 0
 
-
 def DownloadVideo(video, fileName):
     try:
         # Download the video
@@ -219,6 +219,30 @@ def DownloadVideo(video, fileName):
     except pytube.exceptions.AgeRestricted:
         FunCom("Age-restricted video detected", "Hold on, bro! This video is age-restricted.")
 
+def CutAudio(audio_clip, size):
+
+    # Set the duration of the audio clip
+    clip_duration = audio_clip.duration
+
+    # Calculate the number of pieces based on the specified size
+    num_pieces = math.ceil(clip_duration / size)
+
+    FunCom(f"Number of pieces: {num_pieces}",f"I'll be cutting this into {num_pieces} pieces.")
+
+    subclip_list = []
+
+    # Cut the audio into pieces
+    pieces = []
+    for i in range(num_pieces):
+        start_time = i * size
+        end_time = (i + 1) * size
+        if end_time > clip_duration:
+            end_time = clip_duration
+        subclip = audio_clip.subclip(start_time, end_time)
+        subclip_list.append(subclip)
+    
+    return subclip_list
+
 #endregion
 
 # Create the Window
@@ -228,6 +252,7 @@ layout = [
             [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-PATH-'), sg.FolderBrowse()],
             [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
             [sg.Checkbox('Download highest res video (No audio)', key='-DOWNLOAD_VIDEO-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
+            [sg.Checkbox('Cut up large files', key='-CUT_UP_FILES-', enable_events=True), sg.Input(size=(15, 1), key='-CUT_SIZE-', visible=False)],
             [sg.Checkbox('You want my funny commentary?', key='-FUN_COM-')],
             [sg.Button('Download'), sg.Button('Check Duration')]
 ]
@@ -250,6 +275,12 @@ while True:
     if event == '-DOWNLOAD_VIDEO-':
         # Toggle visibility of the 'Also download audio' checkbox
         window['-DOWNLOAD_AUDIO-'].update(visible=values['-DOWNLOAD_VIDEO-'])
+
+    # Cut up large files checkbox
+    if event == '-CUT_UP_FILES-':
+        # Toggle visibility of the input field based on the checkbox state
+        window['-CUT_SIZE-'].update(visible=values['-CUT_UP_FILES-'])
+
 
     if event == "Check Duration":
         # Guard Clauses
@@ -451,7 +482,43 @@ while True:
                     os.remove(filePath + ".mp4")
                     FunCom("Deleting tmp mp4","I'm deleting that low res video, so you don't have to deal with that...")
 
-                    ApplyAudioOptions(f"{filePath}.mp3")
+                    audio_options = GetAudioOptions()
+
+
+                    # Cutting the video
+                    clip_changes = audio_options or values['-CUT_UP_FILES-']
+
+                    if clip_changes:
+
+                        # Options
+                        audio_clip = AudioFileClip(f"{filePath}.mp3")
+
+                        clip_list = [audio_clip]
+
+                        if audio_options:
+                            clip_list = ApplyAudioOptions(audio_clip, audio_options)
+                                
+
+                        # Cutting into pieces
+                        if values['-CUT_UP_FILES-']:
+                            cut_size = ConvertToSeconds(values['-CUT_SIZE-'],video.length)
+                            FunCom(f"Cutting files into maximum {cut_size}s long pieces.", f"How big you want them audio files? {cut_size}s? Okay then...")
+                            old_clip_list = clip_list
+                            clip_list = []
+                            for clip in old_clip_list:
+                                clip_list = CutAudio(clip, cut_size)
+
+                        # Exporting audio files
+                        FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies!")
+                        
+                        for i in range(len(clip_list)):
+                            file_name = f"{filePath}-{i+1}.mp3"
+                            clip_list[0].write_audiofile(file_name)
+                            clip_list[0].close()
+
+                        audio_clip.close()
+                        os.remove(f"{filePath}.mp3")
+                    
 
                 if  values['-DOWNLOAD_VIDEO-']:
                     

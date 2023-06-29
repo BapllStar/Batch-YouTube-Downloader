@@ -45,7 +45,8 @@ https://youtu.be/dQw4w9WgXcQ
 #   from 02:00 until the end (& 2m - end)
 
 ## Alternative trimming syntax
-# The trimming post (the time mark) is by default 0s. This makes you able to write "" in place of "0s", "0m" or "0h". See example below.
+# The trimming post (the time mark) is by default 0s.
+# This makes you able to write "" in place of "0s", "0m" or "0h". See example below.
 https://www.youtube.com/watch?v=X3HrBg--wk4
 &  - 7s
 # ^ Mind you, there are 2 spaces here.

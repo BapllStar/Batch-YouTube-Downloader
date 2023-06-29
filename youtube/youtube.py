@@ -40,7 +40,7 @@ print("\n\n=====================================================================
 #region Functions
 
 def FunCom(lame, fun):
-    if not values['-FUN_COM-']:
+    if not values['fun_com']:
         print(lame)
     else:
         print("\nBapll - "+fun)
@@ -250,21 +250,30 @@ sg.set_options(font=("Arial Bold",10))
 
 download_tab_layout = [
     [sg.Text('Ayo, bro! What are we downloading?')],
-    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-PATH-'), sg.FolderBrowse()],
-    [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
-    [sg.Checkbox('Download highest res video (No audio)', key='-DOWNLOAD_VIDEO-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
-    [sg.Checkbox('Cut up large files', key='-CUT_UP_FILES-', enable_events=True), sg.Input(size=(15, 1), key='-CUT_SIZE-', visible=False)],
-    [sg.Checkbox('You want my funny commentary?', key='-FUN_COM-')],
+    [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='download_list'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='download_path'), sg.FolderBrowse()],
+    [sg.Checkbox('Download highest res video (No audio)', key='download_video', enable_events=True), sg.Checkbox('Also download audio', key='download_video_audio', visible=False, enable_events=True)],
+    [sg.Checkbox('Cut up large files', key='download_cut_files', enable_events=True), sg.Input(size=(6, 1), key='download_cut_size', default_text='20m', visible=False)],
     [sg.Button('Download'), sg.Button('Check Duration')]
 ]
 remove_silence_tab_layout = [
-    [sg.Text('I see you are not a big fan of the Sound of Silence?')]
+    [sg.Text('I see you are not a big fan of the Sound of Silence?')],
+    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True ,key='remove_in'), sg.FolderBrowse()],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='remove_out'), sg.FolderBrowse()],
+    [sg.Text('Silence Threshhold'),sg.Input(size=(6, 1), key='remove_threshhold', default_text='40')],
+    [sg.Text('Silence Duration'),sg.Input(size=(6, 1), key='remove_duration', default_text='500')],
+    [sg.Button('Remove Silence')]
+]
+settings_tab_layout = [
+    [sg.Text('You don\'t like MY settings? Oh, okay. Yeah, that\'s fine. I have no problem with that.')],
+    [sg.Checkbox('You want my funny commentary?', key='fun_com')]
 ]
 
 download_tab = sg.Tab("Download Audio", download_tab_layout)
 remove_silence_tab = sg.Tab("Remove Silence", remove_silence_tab_layout)
+settings_tab = sg.Tab("Settings",settings_tab_layout)
 
-tab_group = sg.TabGroup([[download_tab,remove_silence_tab]])
+tab_group = sg.TabGroup([[download_tab,remove_silence_tab,settings_tab]])
 
 layout = [
     [tab_group]
@@ -281,24 +290,24 @@ while True:
         break
 
     # Choose folder
-    if event == '-PATH-':
-        path = values['-PATH-']
+    if event == 'download_path':
+        path = values['download_path']
 
     # The Video checkbox
-    if event == '-DOWNLOAD_VIDEO-':
+    if event == 'download_video':
         # Toggle visibility of the 'Also download audio' checkbox
-        window['-DOWNLOAD_AUDIO-'].update(visible=values['-DOWNLOAD_VIDEO-'])
+        window['download_video_audio'].update(visible=values['download_video'])
 
     # Cut up large files checkbox
-    if event == '-CUT_UP_FILES-':
+    if event == 'download_cut_files':
         # Toggle visibility of the input field based on the checkbox state
-        window['-CUT_SIZE-'].update(visible=values['-CUT_UP_FILES-'])
+        window['download_cut_size'].update(visible=values['download_cut_files'])
 
 
     if event == "Check Duration":
         # Guard Clauses
         #region Guard Clauses
-        if not values['-FILE-']:
+        if not values['download_list']:
             FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
             continue
         #endregion
@@ -307,7 +316,7 @@ while True:
         # Processing the Inputted Data
         #region Processing the Inputted Data
         # Get the file path entered by the user
-        file_path = values['-FILE-']  
+        file_path = values['download_list']  
 
 
         # Read all the YouTube links from the file
@@ -396,21 +405,20 @@ while True:
 
         # Guard Clauses
         #region Guard Clauses
-        if not values['-PATH-']:
-            FunCom("Please Select an output location","And where excactly am I supposed to put the stuff I'm SO KINDLY downloading FOR you?")
-            continue
-
-        if not values['-FILE-']:
+        if not values['download_list']:
             FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
             continue
-        
+
+        if not values['download_path']:
+            FunCom("Please Select an output location","And where excactly am I supposed to put the stuff I'm SO KINDLY downloading FOR you?")
+            continue
         #endregion
 
 
         # Processing the Inputted Data
         #region Processing the Inputted Data
         # Get the file path entered by the user
-        file_path = values['-FILE-']  
+        file_path = values['download_list']  
 
 
         # Read all the YouTube links from the file
@@ -472,7 +480,7 @@ while True:
                 filePath = f"{path}/{authorName}/{fileName}"
                 #endregion
                 
-                if not values['-DOWNLOAD_VIDEO-'] or values['-DOWNLOAD_VIDEO-'] and values['-DOWNLOAD_AUDIO-']:
+                if not values['download_video'] or values['download_video'] and values['download_video_audio']:
                     
                     #Download the low res video
                     #region Download the low res video
@@ -499,7 +507,7 @@ while True:
 
 
                     # Cutting the video
-                    clip_changes = audio_options or values['-CUT_UP_FILES-']
+                    clip_changes = audio_options or values['download_cut_files']
 
                     if clip_changes:
 
@@ -511,8 +519,8 @@ while True:
                                 
 
                         # Cutting into pieces
-                        if values['-CUT_UP_FILES-']:
-                            cut_size = ConvertToSeconds(values['-CUT_SIZE-'],video.length)
+                        if values['download_cut_files']:
+                            cut_size = ConvertToSeconds(values['download_cut_size'],video.length)
                             FunCom(f"Cutting files into maximum {cut_size}s long pieces.", f"How big you want them audio files? {cut_size}s? Okay then...")
                             old_clip_list = clip_list
                             clip_list = []
@@ -536,7 +544,7 @@ while True:
                         FunCom("Removal done", "Mom is dead a burried now.")
 
 
-                if  values['-DOWNLOAD_VIDEO-']:
+                if  values['download_video']:
                     
                     # Download High res video
                     #region Download High res video

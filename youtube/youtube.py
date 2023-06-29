@@ -1,6 +1,8 @@
 import os
 import re
 import subprocess
+import traceback
+import sys
 from os import listdir
 import math
 import numpy as np
@@ -10,6 +12,7 @@ from scipy.io.wavfile import read, write
 from moviepy.editor import *
 from pytube import YouTube
 from tqdm import tqdm
+import datetime
 import PySimpleGUI as sg
 
 # Print logo
@@ -389,7 +392,8 @@ remove_silence_tab_layout = [
 ]
 settings_tab_layout = [
     [sg.Text('You don\'t like MY settings? Oh, okay. Yeah, that\'s fine. I have no problem with that.')],
-    [sg.Checkbox('You want my funny commentary?', key='fun_com')]
+    [sg.Checkbox('You want my funny commentary?', key='fun_com')],
+    [sg.Text('Error log path'),sg.Input(size=(55, 1), key='error_path', default_text=f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")]
 ]
 
 download_tab = sg.Tab("Download Audio", download_tab_layout)
@@ -404,345 +408,357 @@ layout = [
 
 window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)
 #endregion
-
-# While the PySimpleGUI is active
 while True:
     event, values = window.read()
-
-    if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
-        break
-
-    # Download Audio Tab
-    #region Download Audio Tab
-
-    if event == 'download_path':
-        download_path = values['download_path']
-
-    if event == 'download_video':
-        # Toggle visibility of the 'Also download audio' checkbox
-        window['download_video_audio'].update(visible=values['download_video'])
-
-    if event == 'download_cut_files':
-        # Toggle visibility of the input field based on the checkbox state
-        window['download_cut_size'].update(visible=values['download_cut_files'])
-
-    if event == "Check Duration":
-        # Guard Clauses
-        #region Guard Clauses
-        if not values['download_list']:
-            FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
-            continue
-        #endregion
-
-
-        # Processing the Inputted Data
-        #region Processing the Inputted Data
-        # Get the file path entered by the user
-        file_path = values['download_list']  
-
-
-        # Read all the YouTube links from the file
-        with open(file_path, 'r') as file:
-            youtube_links = file.readlines()  
-
-        total_lines = len(youtube_links)  # Total number of YouTube links
-        current_line = 0  # Initialize current link counter
-        current_links = 0
-        
-
-        # Count links
-        total_links = 0
-        for link in youtube_links:
-            if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
-                total_links += 1
-        FunCom(f"\nFound {total_links} links",f"Imma check those durations for ya on all {total_links} videos!")
-        PrintSeparator()
-
-        #endregion
-
-        author_durations = {}
-
-        # For every link in the file
-        for link in youtube_links:
-            link = link.strip()
-
-            # Commenting
-            #region Handle Commenting
-            if link.startswith("#"):
-                current_line += 1
-                if link.startswith("##"):
-                    print("\n" + link.split('##')[1])
-                    PrintSeparator()
-                continue
-            
-            if not link or link.startswith('&'):
-                current_line += 1
+    try:
+        if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
+            break
+    
+        # Download Audio Tab
+        #region Download Audio Tab
+    
+        if event == 'download_path':
+            download_path = values['download_path']
+    
+        if event == 'download_video':
+            # Toggle visibility of the 'Also download audio' checkbox
+            window['download_video_audio'].update(visible=values['download_video'])
+    
+        if event == 'download_cut_files':
+            # Toggle visibility of the input field based on the checkbox state
+            window['download_cut_size'].update(visible=values['download_cut_files'])
+    
+        if event == "Check Duration":
+            # Guard Clauses
+            #region Guard Clauses
+            if not values['download_list']:
+                FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
                 continue
             #endregion
-
-            # Validate the link
-            if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
+    
+    
+            # Processing the Inputted Data
+            #region Processing the Inputted Data
+            # Get the file path entered by the user
+            file_path = values['download_list']  
+    
+    
+            # Read all the YouTube links from the file
+            with open(file_path, 'r') as file:
+                youtube_links = file.readlines()  
+    
+            total_lines = len(youtube_links)  # Total number of YouTube links
+            current_line = 0  # Initialize current link counter
+            current_links = 0
+            
+    
+            # Count links
+            total_links = 0
+            for link in youtube_links:
+                if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
+                    total_links += 1
+            FunCom(f"\nFound {total_links} links",f"Imma check those durations for ya on all {total_links} videos!")
+            PrintSeparator()
+    
+            #endregion
+    
+            author_durations = {}
+    
+            # For every link in the file
+            for link in youtube_links:
+                link = link.strip()
+    
+                # Commenting
+                #region Handle Commenting
+                if link.startswith("#"):
+                    current_line += 1
+                    if link.startswith("##"):
+                        print("\n" + link.split('##')[1])
+                        PrintSeparator()
+                    continue
                 
-                # Finding the video
-                #region Finding the video
-                video = YouTube(link)
-
-                # Rest of your code for downloading and converting the video
-                FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
-                FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
-                
+                if not link or link.startswith('&'):
+                    current_line += 1
+                    continue
                 #endregion
-
-                authorName = re.sub('[\W_]+', '', video.author)
-                duration = video.length - GetCutDuration(video.length)
-
-                if authorName not in author_durations:
-                    author_durations[authorName] = duration
+    
+                # Validate the link
+                if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
+                    
+                    # Finding the video
+                    #region Finding the video
+                    video = YouTube(link)
+    
+                    # Rest of your code for downloading and converting the video
+                    FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
+                    FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
+                    
+                    #endregion
+    
+                    authorName = re.sub('[\W_]+', '', video.author)
+                    duration = video.length - GetCutDuration(video.length)
+    
+                    if authorName not in author_durations:
+                        author_durations[authorName] = duration
+                    else:
+                        author_durations[authorName] += duration
+    
+                    # Set Stats for the program
+                    #region Set Stats for the program
+                    current_line += 1
+                    current_links += 1
+                    links_left = total_links - current_links
+                    FunCom(f"\nThe video has been scanned\n\n   [{current_links}/{total_links} videos completed]",f"Ayo, this one's done! Only like {links_left} to go...")
+                    PrintSeparator()
+                    #endregion
                 else:
-                    author_durations[authorName] += duration
-
-                # Set Stats for the program
-                #region Set Stats for the program
-                current_line += 1
-                current_links += 1
-                links_left = total_links - current_links
-                FunCom(f"\nThe video has been scanned\n\n   [{current_links}/{total_links} videos completed]",f"Ayo, this one's done! Only like {links_left} to go...")
-                PrintSeparator()
-                #endregion
-            else:
-                # If this is not a video, a comment or audio setting.
-                FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
-                PrintSeparator()
-
-        FunCom(f"\n   All {total_links} links scanned",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
-         # Print the total duration for each author
-        for author, duration in author_durations.items():
-            print(f"{author}: {FormatSeconds(duration)}")
-
-        PrintSeparator()
-
-    if event == 'Download':
-
-        # Guard Clauses
-        #region Guard Clauses
-        if not values['download_list']:
-            FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
-            continue
-
-        if not values['download_path']:
-            FunCom("Please Select an output location","And where excactly am I supposed to put the stuff I'm SO KINDLY downloading FOR you?")
-            continue
-        #endregion
-
-
-        # Processing the Inputted Data
-        #region Processing the Inputted Data
-        # Get the file path entered by the user
-        file_path = values['download_list']  
-
-
-        # Read all the YouTube links from the file
-        with open(file_path, 'r') as file:
-            youtube_links = file.readlines()  
-
-        total_lines = len(youtube_links)  # Total number of YouTube links
-        current_line = 0  # Initialize current link counter
-        current_links = 0
-        
-
-        # Count links
-        total_links = 0
-        for link in youtube_links:
-            if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
-                total_links += 1
-        FunCom(f"\nFound {total_links} links",f"Readying up for downloading {total_links} thingies!")
-        PrintSeparator()
-
-        #endregion
-
-        # For every link in the file
-        for link in youtube_links:
-            link = link.strip()
-
-            # Commenting
-            #region Handle Commenting
-            if link.startswith("#"):
-                current_line += 1
-                if link.startswith("##"):
-                    print("\n" + link.split('##')[1])
+                    # If this is not a video, a comment or audio setting.
+                    FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
                     PrintSeparator()
+    
+            FunCom(f"\n   All {total_links} links scanned",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
+             # Print the total duration for each author
+            for author, duration in author_durations.items():
+                print(f"{author}: {FormatSeconds(duration)}")
+    
+            PrintSeparator()
+    
+        if event == 'Download':
+    
+            # Guard Clauses
+            #region Guard Clauses
+            if not values['download_list']:
+                FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
                 continue
-            
-            if not link or link.startswith('&'):
-                current_line += 1
+    
+            if not values['download_path']:
+                FunCom("Please Select an output location","And where excactly am I supposed to put the stuff I'm SO KINDLY downloading FOR you?")
                 continue
             #endregion
-
-            # Validate the link
-            if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
+    
+    
+            # Processing the Inputted Data
+            #region Processing the Inputted Data
+            # Get the file path entered by the user
+            file_path = values['download_list']  
+    
+    
+            # Read all the YouTube links from the file
+            with open(file_path, 'r') as file:
+                youtube_links = file.readlines()  
+    
+            total_lines = len(youtube_links)  # Total number of YouTube links
+            current_line = 0  # Initialize current link counter
+            current_links = 0
+            
+    
+            # Count links
+            total_links = 0
+            for link in youtube_links:
+                if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
+                    total_links += 1
+            FunCom(f"\nFound {total_links} links",f"Readying up for downloading {total_links} thingies!")
+            PrintSeparator()
+    
+            #endregion
+    
+            # For every link in the file
+            for link in youtube_links:
+                link = link.strip()
+    
+                # Commenting
+                #region Handle Commenting
+                if link.startswith("#"):
+                    current_line += 1
+                    if link.startswith("##"):
+                        print("\n" + link.split('##')[1])
+                        PrintSeparator()
+                    continue
                 
-                # Finding the video
-                #region Finding the video
-                video = YouTube(link, on_progress_callback = UpdateDownloadProgress)
-
-                # Rest of your code for downloading and converting the video
-                FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
-                FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
-                
+                if not link or link.startswith('&'):
+                    current_line += 1
+                    continue
                 #endregion
-
-                # Define Path Variables
-                #region Path Variables
-                authorName = re.sub('[\W_]+', '', video.author)
-
-                fileName = GenerateUniqueFileName(f"{download_path}/{authorName}", authorName)
-
-                filePath = f"{download_path}/{authorName}/{fileName}"
-                #endregion
-                
-                if not values['download_video'] or values['download_video'] and values['download_video_audio']:
+    
+                # Validate the link
+                if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
                     
-                    #Download the low res video
-                    #region Download the low res video
-                    FunCom("Downloading low res tmp mp4","Imma download a temporary low res video for the audio. Hold on a minute, okay?\n")
+                    # Finding the video
+                    #region Finding the video
+                    video = YouTube(link, on_progress_callback = UpdateDownloadProgress)
+    
+                    # Rest of your code for downloading and converting the video
+                    FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
+                    FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
                     
-                    # Set up the tqdm progress bar
-                    progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
-
-                    DownloadVideo(video.streams.filter(only_audio=True).first(),fileName)
-
-                    FunCom("\nDownload complete","\nI'm dooooone!")
-
-                    FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")
+                    #endregion
+    
+                    # Define Path Variables
+                    #region Path Variables
+                    authorName = re.sub('[\W_]+', '', video.author)
+    
+                    fileName = GenerateUniqueFileName(f"{download_path}/{authorName}", authorName)
+    
+                    filePath = f"{download_path}/{authorName}/{fileName}"
                     #endregion
                     
-                    # Convert to mp3
-                    VideoToAudio(f"{filePath}.mp4", f"{filePath}.mp3")
-
-                    # Remove mp4
-                    os.remove(filePath + ".mp4")
-                    FunCom("Deleting tmp mp4","I'm deleting that low res video, so you don't have to deal with that...")
-
-                    audio_options = GetAudioOptions()
-
-
-                    # Cutting the video
-                    clip_changes = audio_options or values['download_cut_files']
-
-                    if clip_changes:
-
-                        # Options
-                        audio_clip = AudioFileClip(f"{filePath}.mp3")
-                        clip_list = [audio_clip]
-                        if audio_options:
-                            clip_list = ApplyAudioOptions(audio_clip, audio_options)
-                                
-
-                        # Cutting into pieces
-                        if values['download_cut_files']:
-                            cut_size = ConvertToSeconds(values['download_cut_size'],video.length)
-                            FunCom(f"Cutting files into maximum {cut_size}s long pieces.", f"How big you want them audio files? {cut_size}s? Okay then...")
-                            old_clip_list = clip_list
-                            clip_list = []
-                            for clip in old_clip_list:
-                                MergeLists(clip_list,CutAudio(clip, cut_size))
-
+                    if not values['download_video'] or values['download_video'] and values['download_video_audio']:
                         
-                        # Exporting audio files
-                        FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies! Wait, is that you, MoviePy?")
+                        #Download the low res video
+                        #region Download the low res video
+                        FunCom("Downloading low res tmp mp4","Imma download a temporary low res video for the audio. Hold on a minute, okay?\n")
                         
-                        for i in range(len(clip_list)):
-                            file_name = f"{filePath}-{i+1}.mp3"
-                            clip_list[i].write_audiofile(file_name)
-
-                        FunCom("All new audiofiles done", "Yup, he's done now.")
+                        # Set up the tqdm progress bar
+                        progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
+    
+                        DownloadVideo(video.streams.filter(only_audio=True).first(),fileName)
+    
+                        FunCom("\nDownload complete","\nI'm dooooone!")
+    
+                        FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")
+                        #endregion
                         
-                        FunCom("Removing original mp3", "Oh, the mom mp3 died. I guess you're gonna have to take care of those new mp3 files...")
-                        # Remove original clip
-                        CloseClips(clip_list)
-                        os.remove(f"{filePath}.mp3")
-                        FunCom("Removal done", "Mom is dead a burried now.")
-
-
-                if  values['download_video']:
+                        # Convert to mp3
+                        VideoToAudio(f"{filePath}.mp4", f"{filePath}.mp3")
+    
+                        # Remove mp4
+                        os.remove(filePath + ".mp4")
+                        FunCom("Deleting tmp mp4","I'm deleting that low res video, so you don't have to deal with that...")
+    
+                        audio_options = GetAudioOptions()
+    
+    
+                        # Cutting the video
+                        clip_changes = audio_options or values['download_cut_files']
+    
+                        if clip_changes:
+    
+                            # Options
+                            audio_clip = AudioFileClip(f"{filePath}.mp3")
+                            clip_list = [audio_clip]
+                            if audio_options:
+                                clip_list = ApplyAudioOptions(audio_clip, audio_options)
+                                    
+    
+                            # Cutting into pieces
+                            if values['download_cut_files']:
+                                cut_size = ConvertToSeconds(values['download_cut_size'],video.length)
+                                FunCom(f"Cutting files into maximum {cut_size}s long pieces.", f"How big you want them audio files? {cut_size}s? Okay then...")
+                                old_clip_list = clip_list
+                                clip_list = []
+                                for clip in old_clip_list:
+                                    MergeLists(clip_list,CutAudio(clip, cut_size))
+    
+                            
+                            # Exporting audio files
+                            FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies! Wait, is that you, MoviePy?")
+                            
+                            for i in range(len(clip_list)):
+                                file_name = f"{filePath}-{i+1}.mp3"
+                                clip_list[i].write_audiofile(file_name)
+    
+                            FunCom("All new audiofiles done", "Yup, he's done now.")
+                            
+                            FunCom("Removing original mp3", "Oh, the mom mp3 died. I guess you're gonna have to take care of those new mp3 files...")
+                            # Remove original clip
+                            CloseClips(clip_list)
+                            os.remove(f"{filePath}.mp3")
+                            FunCom("Removal done", "Mom is dead a burried now.")
+    
+    
+                    if  values['download_video']:
+                        
+                        # Download High res video
+                        #region Download High res video
+                        FunCom("Downloading highest res mp4","I'm downloading the highest res video I can find now!")
+    
+                        # Set up the tqdm progress bar
+                        progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
+                        DownloadVideo(video.streams.order_by('resolution').desc().first())
+    
+                        FunCom("\nDownload complete","\nI'm fiiiiiiniiiished!")
+                        FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")
+                        #endregion
                     
-                    # Download High res video
-                    #region Download High res video
-                    FunCom("Downloading highest res mp4","I'm downloading the highest res video I can find now!")
-
-                    # Set up the tqdm progress bar
-                    progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
-                    DownloadVideo(video.streams.order_by('resolution').desc().first())
-
-                    FunCom("\nDownload complete","\nI'm fiiiiiiniiiished!")
-                    FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")
+                    # Set Stats for the program
+                    #region Set Stats for the program
+                    current_line += 1
+                    current_links += 1
+                    links_left = total_links - current_links
+                    FunCom(f"\nThe job \"{fileName}\" has been completed!\n\n   [{current_links}/{total_links} jobs completed]",f"Ayo, this one's done! Only like {links_left} to go...")
+                    PrintSeparator()
                     #endregion
-                
-                # Set Stats for the program
-                #region Set Stats for the program
-                current_line += 1
-                current_links += 1
-                links_left = total_links - current_links
-                FunCom(f"\nThe job \"{fileName}\" has been completed!\n\n   [{current_links}/{total_links} jobs completed]",f"Ayo, this one's done! Only like {links_left} to go...")
-                PrintSeparator()
-                #endregion
-            else:
-                # If this is not a video, a comment or audio setting.
-                FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
-                PrintSeparator()
-
-        FunCom(f"\n   All {total_links} jobs done",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
-        PrintSeparator()
-    #endregion
-
-    # Remove Silence Tab
-    #region Remove Silence Tab
-    if event == 'remove_in':
-        remove_in = values['remove_in']
-
-    if event == 'remove_out':
-        remove_out = values['remove_out']
-
-    remove_defined = int(values['remove_defined'])
-    remove_threshhold = int(values['remove_threshhold'])
-    remove_duration = int(values['remove_duration'])
-
-    if event == 'Remove Silence':
-        remove_in = values['remove_in']
-        remove_out = values['remove_out']
-         # Guard Clauses
-        #region Guard Clauses
-        if not values['remove_in']:
-            FunCom("Please select an input directory","I need something to remove the silence from. Gimme a folder with some files in it.")
-            continue
-
-        if not values['remove_out']:
-            FunCom("Please select an output directory","And where excactly am I supposed to put the stuff after I've removed the audio from it?")
-            continue
-        
-        print("")
-        FunCom("Removing Silence", "There will be no silence left alive, when I am done here!")
-        FunCom(f"Found {len(os.listdir(remove_in))} files",f"I found {len(os.listdir(remove_in))} files to convert for you.")
-        PrintSeparator()
-        
-        # Iterate through files in the input directory
-        for filename in os.listdir(remove_in):
-            if filename.endswith(".wav"):
-                print("")
-                FunCom(f"Starting removal proces on \"{filename}\"","There shall be no silence, {filename}!")
-                input_file = f"{remove_in}/{filename}"
-                output_file = f"{remove_out}/{filename}"
-                detected_silence = detect_silence(input_file,remove_threshhold)
-                remove_silence(input_file, detected_silence, remove_duration, output_file)
-                PrintSeparator()
-            else:
-                FunCom(f"{filename} is not a wav-file",f"{filename} isn't a wav-file you dumdum. Luckily for you, I can just ignore stuff like that.")
-                PrintSeparator()
+                else:
+                    # If this is not a video, a comment or audio setting.
+                    FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
+                    PrintSeparator()
+    
+            FunCom(f"\n   All {total_links} jobs done",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
+            PrintSeparator()
+        #endregion
+    
+        # Remove Silence Tab
+        #region Remove Silence Tab
+        if event == 'remove_in':
+            remove_in = values['remove_in']
+    
+        if event == 'remove_out':
+            remove_out = values['remove_out']
+    
+        remove_defined = int(values['remove_defined'])
+        remove_threshhold = int(values['remove_threshhold'])
+        remove_duration = int(values['remove_duration'])
+    
+        if event == 'Remove Silence':
+            remove_in = values['remove_in']
+            remove_out = values['remove_out']
+             # Guard Clauses
+            #region Guard Clauses
+            if not values['remove_in']:
+                FunCom("Please select an input directory","I need something to remove the silence from. Gimme a folder with some files in it.")
+                continue
+    
+            if not values['remove_out']:
+                FunCom("Please select an output directory","And where excactly am I supposed to put the stuff after I've removed the audio from it?")
+                continue
+            
+            print("")
+            FunCom("Removing Silence", "There will be no silence left alive, when I am done here!")
+            FunCom(f"Found {len(os.listdir(remove_in))} files",f"I found {len(os.listdir(remove_in))} files to convert for you.")
+            PrintSeparator()
+            
+            # Iterate through files in the input directory
+            for filename in os.listdir(remove_in):
+                if filename.endswith(".wav"):
+                    print("")
+                    FunCom(f"Starting removal proces on \"{filename}\"","There shall be no silence, {filename}!")
+                    input_file = f"{remove_in}/{filename}"
+                    output_file = f"{remove_out}/{filename}"
+                    detected_silence = detect_silence(input_file,remove_threshhold)
+                    remove_silence(input_file, detected_silence, remove_duration, output_file)
+                    PrintSeparator()
+                else:
+                    FunCom(f"{filename} is not a wav-file",f"{filename} isn't a wav-file you dumdum. Luckily for you, I can just ignore stuff like that.")
+                    PrintSeparator()
+            #endregion
+    
+            FunCom("\nRemoval Complete", "They. Are. ALL. DEAD!")
+            PrintSeparator()
         #endregion
 
-        FunCom("\nRemoval Complete", "They. Are. ALL. DEAD!")
-        PrintSeparator()
-        
+    except Exception as e:
+        error_path = values['error_path']
+        traceback_str = traceback.format_exc()
 
-    #endregion
+        current_datetime = datetime.datetime.now()
+        current_date = current_datetime.date()
+        current_time = current_datetime.time()
+
+        # Open error.txt file in append mode
+        with open(f"{error_path}/error.txt", "a") as file:
+            # Append the traceback string to the file
+            file.write(f"{current_date} - {current_time}\n{traceback_str}\n========================================================================================================\n\n")
+
+        print("An error occurred. The traceback has been appended to error.txt.")
+
 window.close()

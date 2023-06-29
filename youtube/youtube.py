@@ -1,24 +1,16 @@
-# General
-import PySimpleGUI as sg
-import re
 import os
-from tqdm import tqdm
-import math
-import sys
-from os import listdir
-import tqdm
-import traceback
-
-# Download audio
-from pytube import YouTube
-from moviepy.editor import *
-
-# Remove silence
-from scipy.io import wavfile
-from scipy.io.wavfile import read, write
+import re
 import subprocess
+from os import listdir
+import math
 import numpy as np
 import wave
+from scipy.io import wavfile
+from scipy.io.wavfile import read, write
+from moviepy.editor import *
+from pytube import YouTube
+from tqdm import tqdm
+import PySimpleGUI as sg
 
 try:
     # Print logo
@@ -478,6 +470,184 @@ try:
                         print("\n" + link.split('##')[1])
                         PrintSeparator()
                     continue
+    FunCom("Detection Complete", "I found all of the silence.")
+    return list(zip(start, end))
+
+def remove_silence(file, sil, keep_sil, out_path):
+    '''
+    This function removes silence from the audio.
+    
+    Input: 
+    file = Input audio file path
+    sil = List of silence time slots that need to be removed
+    keep_sil = Time to keep as allowed silence after removing silence
+    out_path = Output path of audio file
+    
+    Returns:
+    Non-silent patches and saves the new audio in the output path as a WAV file.
+    '''
+    rate, aud = read(file)
+    a = float(keep_sil) / 2
+    sil_updated = [(i[0] + a, i[1] - a) for i in sil]
+    
+    # Convert the silence patch to non-sil patches
+    non_sil = []
+    tmp = 0
+    ed = len(aud) / rate
+    for i in range(len(sil_updated)):
+        non_sil.append((tmp, sil_updated[i][0]))
+        tmp = sil_updated[i][1]
+    if sil_updated[-1][1] + a / 2 < ed:
+        non_sil.append((sil_updated[-1][1], ed))
+    if non_sil[0][0] == non_sil[0][1]:
+        del non_sil[0]
+    
+    # Cut the audio
+    print('Slicing started')
+    ans = []
+    ad = list(aud)
+    for i in tqdm(non_sil, desc='Writing WAV', unit='chunk'):
+        ans += ad[int(i[0] * rate):int(i[1] * rate)]
+    
+    # Create a WAV file
+    with wave.open(out_path, 'wb') as wav_file:
+        wav_file.setnchannels(1)  # Mono audio
+        wav_file.setsampwidth(2)  # 2 bytes per sample (16-bit audio)
+        wav_file.setframerate(rate*2)  # Set the sample rate to match the original audio
+        wav_file.writeframes(np.array(ans).astype(np.int16).tobytes())  # Write audio data
+    
+    return non_sil
+#endregion
+
+#endregion
+
+# Create the Window
+#region Create the Window
+sg.theme('DarkTanBlue')
+sg.set_options(font=("Arial Bold",10))
+
+download_tab_layout = [
+    [sg.Text('Ayo, bro! What are we downloading?')],
+    [sg.Text('This exports mp3- and mp4-files')],
+    [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='download_list'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='download_path'), sg.FolderBrowse()],
+    [sg.Checkbox('Download highest res video (No audio)', key='download_video', enable_events=True), sg.Checkbox('Also download audio', key='download_video_audio', visible=False, enable_events=True)],
+    [sg.Checkbox('Cut up large files', key='download_cut_files', enable_events=True), sg.Input(size=(6, 1), key='download_cut_size', default_text='20m', visible=False)],
+    [sg.Button('Download'), sg.Button('Check Duration')]
+]
+remove_silence_tab_layout = [
+    [sg.Text('I see you are not a big fan of the Sound of Silence?')],
+    [sg.Text('This works only with wav-files.')],
+    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/in', key='remove_in'), sg.FolderBrowse()],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/out', key='remove_out'), sg.FolderBrowse()],
+    [sg.Text('Define Silence (intdB)'),sg.Input(size=(8, 1), key='remove_defined', default_text='23')],
+    [sg.Text('Silence Threshhold (int)'),sg.Input(size=(8, 1), key='remove_threshhold', default_text='1')],
+    [sg.Text('Silence Duration (int)'),sg.Input(size=(8, 1), key='remove_duration', default_text='1')],
+    [sg.Button('Remove Silence')]
+]
+settings_tab_layout = [
+    [sg.Text('You don\'t like MY settings? Oh, okay. Yeah, that\'s fine. I have no problem with that.')],
+    [sg.Checkbox('You want my funny commentary?', key='fun_com')]
+]
+
+download_tab = sg.Tab("Download Audio", download_tab_layout)
+remove_silence_tab = sg.Tab("Remove Silence", remove_silence_tab_layout)
+settings_tab = sg.Tab("Settings",settings_tab_layout)
+
+tab_group = sg.TabGroup([[download_tab,remove_silence_tab,settings_tab]])
+
+layout = [
+    [tab_group]
+]
+
+window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)
+#endregion
+
+# While the PySimpleGUI is active
+while True:
+    event, values = window.read()
+
+    if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
+        break
+
+    # Download Audio Tab
+    #region Download Audio Tab
+
+    if event == 'download_path':
+        download_path = values['download_path']
+
+    if event == 'download_video':
+        # Toggle visibility of the 'Also download audio' checkbox
+        window['download_video_audio'].update(visible=values['download_video'])
+
+    if event == 'download_cut_files':
+        # Toggle visibility of the input field based on the checkbox state
+        window['download_cut_size'].update(visible=values['download_cut_files'])
+
+    if event == "Check Duration":
+        # Guard Clauses
+        #region Guard Clauses
+        if not values['download_list']:
+            FunCom("Please Select a txt file","WHAT excactly are we downloading? Come on, gimme something to work with!")
+            continue
+        #endregion
+
+
+        # Processing the Inputted Data
+        #region Processing the Inputted Data
+        # Get the file path entered by the user
+        file_path = values['download_list']  
+
+
+        # Read all the YouTube links from the file
+        with open(file_path, 'r') as file:
+            youtube_links = file.readlines()  
+
+        total_lines = len(youtube_links)  # Total number of YouTube links
+        current_line = 0  # Initialize current link counter
+        current_links = 0
+        
+
+        # Count links
+        total_links = 0
+        for link in youtube_links:
+            if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
+                total_links += 1
+        FunCom(f"\nFound {total_links} links",f"Imma check those durations for ya on all {total_links} videos!")
+        PrintSeparator()
+
+        #endregion
+
+        author_durations = {}
+
+        # For every link in the file
+        for link in youtube_links:
+            link = link.strip()
+
+            # Commenting
+            #region Handle Commenting
+            if link.startswith("#"):
+                current_line += 1
+                if link.startswith("##"):
+                    print("\n" + link.split('##')[1])
+                    PrintSeparator()
+                continue
+            
+            if not link or link.startswith('&'):
+                current_line += 1
+                continue
+            #endregion
+
+            # Validate the link
+            if re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link):
+                
+                # Finding the video
+                #region Finding the video
+                video = YouTube(link)
+
+                # Rest of your code for downloading and converting the video
+                FunCom(f"Video from \"{video.author}\" called \"{video.title}\" was found",f"I found a video from \"{video.author}\" called \"{video.title}\"!")
+                FunCom(f"   Duration: {FormatSeconds(video.length)}",f"It's like {FormatSeconds(video.length)} long.")
                 
                 if not link or link.startswith('&'):
                     current_line += 1

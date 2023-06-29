@@ -25,13 +25,31 @@ To use this program, follow the instructions below:
 Example:
 
 ```plaintext
-## Rick Astley
-# This will be printed in the console
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-# https://youtu.be/dQw4w9WgXcQ
-# This won't be read
+##Headlines will show up in the console, when the program is running
+#Comments and epty lines will be completely ignored
 
-## Bapll
-# This will be printed in the console
+# Below is an example for how to make a download list:
+
+## Downloading audio
+# Literally just insert the links line separated. That's it...
+# Tutorial on how to get free V-Bucks below.
+https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
+## Trimming Audio
+# You can cut out specific parts of a video by using the syntax demonstrated below:
+https://youtu.be/dQw4w9WgXcQ
+& 0s - 5s& 10s - 1m,5s& 2m - end
+# This will cut out:
+#   The first 5 seconds (&  - 5s)
+#   From 00:10 to 01:05 (& 10s - 1m,5s)
+#   from 02:00 until the end (& 2m - end)
+
+## Alternative trimming syntax
+# The trimming post (the time mark) is by default 0s. This makes you able to write "" in place of "0s", "0m" or "0h". See example below.
 https://www.youtube.com/watch?v=X3HrBg--wk4
+&  - 7s
+# ^ Mind you, there are 2 spaces here.
+
 https://www.youtube.com/watch?v=3NnIfuvEiec
+```
+The above example code works. You can run it through the program if you want to try it.

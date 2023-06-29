@@ -1,3 +1,4 @@
+# Download audio
 import PySimpleGUI as sg
 import re
 import os
@@ -5,6 +6,15 @@ import math
 from tqdm import tqdm
 from pytube import YouTube
 from moviepy.editor import *
+
+# Remove silence
+from scipy.io import wavfile
+from scipy.io.wavfile import read, write
+import subprocess
+from os import listdir
+import tqdm
+import numpy as np
+import wave
 
 # Print logo
 #region Print ASCII art. I put it in a function to collapse it all.
@@ -39,30 +49,18 @@ print("\n\n=====================================================================
 # Functions
 #region Functions
 
+# General
+#region General
+
+def MergeLists(l1,l2):
+    for thing in l2:
+        l1.append(thing)
+
 def FunCom(lame, fun):
     if not values['fun_com']:
         print(lame)
     else:
         print("\nBapll - "+fun)
-
-def VideoToAudio(mp4, mp3):
-    FunCom("Converting tmp mp4 to mp3 using MoviePy","Bapll - Okay, I dunno how to convert videos to audio, so Imma call up one of my good buddies to help me... MOVIEPYYYYY!\n")
-    FILETOCONVERT = AudioFileClip(mp4)
-    FILETOCONVERT.write_audiofile(mp3)
-    FILETOCONVERT.close()
-    FunCom("Conversion complete","Bapll - Awww, thanks bestie! <3")
-
-def GenerateUniqueFileName(directory, base_filename):
-    counter = 1
-    filename = base_filename + f"-{counter}"
-    if not os.path.exists(directory):
-        os.mkdir(directory)
-    while any(file.startswith(filename) for file in os.listdir(directory)):
-        counter += 1
-        filename = f"{base_filename}-{counter}"
-    filename = f"{base_filename}-{counter}"
-    FunCom(f"Unique filename generated: {filename}",f"Bapll - I generated cool and unique file name: {filename}")
-    return filename
 
 def FormatSeconds(seconds):
     hours = seconds // 3600
@@ -76,14 +74,6 @@ def FormatSeconds(seconds):
 
     # Return as a formatted string
     return f"{hours_str}:{minutes_str}:{seconds_str}"
-
-def UpdateDownloadProgress(stream, chunk, bytes_remaining):
-    # Calculate the progress percentage
-    bytes_downloaded = stream.filesize - bytes_remaining
-    progress_percentage = (bytes_downloaded / stream.filesize) * 100
-
-    # Update the tqdm progress bar
-    progress_bar.update(progress_percentage - progress_bar.n)
 
 def ConvertToSeconds(time, duration):
     time = time.lower()  # Convert the input to lowercase for easier processing
@@ -105,6 +95,45 @@ def ConvertToSeconds(time, duration):
 
     total_seconds = hours * 3600 + minutes * 60 + seconds
     return total_seconds
+
+def NewLine():
+    print("")
+
+def PrintSeparator():
+    print("\n=======================================================================================================================")
+
+#endregion
+
+
+# Download Audio
+#region Downlaod Audio
+
+def VideoToAudio(mp4, mp3):
+    FunCom("Converting tmp mp4 to mp3 using MoviePy","Bapll - Okay, I dunno how to convert videos to audio, so Imma call up one of my good buddies to help me... MOVIEPYYYYY!\n")
+    FILETOCONVERT = AudioFileClip(mp4)
+    FILETOCONVERT.write_audiofile(mp3)
+    FILETOCONVERT.close()
+    FunCom("Conversion complete","Bapll - Awww, thanks bestie! <3")
+
+def GenerateUniqueFileName(directory, base_filename):
+    counter = 1
+    filename = base_filename + f"-{counter}"
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    while any(file.startswith(filename) for file in os.listdir(directory)):
+        counter += 1
+        filename = f"{base_filename}-{counter}"
+    filename = f"{base_filename}-{counter}"
+    FunCom(f"Unique filename generated: {filename}",f"Bapll - I generated cool and unique file name: {filename}")
+    return filename
+
+def UpdateDownloadProgress(stream, chunk, bytes_remaining):
+    # Calculate the progress percentage
+    bytes_downloaded = stream.filesize - bytes_remaining
+    progress_percentage = (bytes_downloaded / stream.filesize) * 100
+
+    # Update the tqdm progress bar
+    progress_bar.update(progress_percentage - progress_bar.n)
 
 def GetAudioOptions():
     # Check if the next line contains audio options
@@ -199,7 +228,7 @@ def GetCutDuration(duration):
 def DownloadVideo(video, fileName):
     try:
         # Download the video
-        video.download(filename=fileName + ".mp4", output_path=f"{path}/{authorName}")
+        video.download(filename=fileName + ".mp4", output_path=f"{download_path}/{authorName}")
 
         # Replace the progress bar with a completion message
         progress_bar.bar_format = f"Downloaded {fileName}.mp4 successfully"
@@ -233,13 +262,98 @@ def CutAudio(audio_clip, size):
     
     return subclip_list
 
-def MergeLists(l1,l2):
-    for thing in l2:
-        l1.append(thing)
-
 def CloseClips(list):
     for i in range(len(list)):
         list[0].close()
+
+#endregion
+
+
+# Remove Silence
+#region Remove Silence
+
+def detect_silence(path, time):
+    FunCom("Detecting Silence", "Silence, I don't know who you are, or where you are, but I will find you... And I will kill you.")
+    command = f"ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
+    out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout, stderr = out.communicate()
+    s = stdout.decode("utf-8")
+    k = s.split('[silencedetect @')
+    if len(k) == 1:
+        # print(stderr)
+        return None
+        
+    start, end = [], []
+    for i in range(1, len(k)):
+        x = k[i].split(']')[1]
+        if i % 2 == 0:
+            x = x.split('|')[0]
+            x = x.split(':')[1].strip()
+            try:
+                end.append(float(x))
+            except ValueError:
+                print(f"ERROR: x = {x}")
+                try:
+                    decimal_part = x.split("[")[0].strip()
+                    end.append(float(decimal_part))
+                    print("Error fixed")
+                except:
+                    print(f"ERROR: decimal_part = {decimal_part}")
+                    continue
+        else:
+            x = x.split(':')[1]
+            x = x.split('size')[0]
+            x = x.replace('\r', '')
+            x = x.replace('\n', '').strip()
+            try:
+                start.append(float(x))
+            except ValueError:
+                print(f"ERROR: x = {x}")
+                try:
+                    decimal_part = x.split("[")[0].strip()
+                    start.append(float(decimal_part))
+                    print("Error fixed")
+                except:
+                    print(f"ERROR: decimal_part = {decimal_part}")
+                    continue
+    FunCom("Detection Complete", "I found all of the silence.")
+    return list(zip(start, end))
+
+def remove_silence(file, sil, keep_sil, out_path):
+    FunCom("Gathering non-silent parts","I'm finding all that non-silence now. Without it, the silence will die.")
+    rate, aud = read(file)
+    a = float(keep_sil) / 2
+    sil_updated = [(i[0] + a, i[1] - a) for i in sil]
+    
+    # Convert the silence patch to non-sil patches
+    non_sil = []
+    tmp = 0
+    ed = len(aud) / rate
+    for i in range(len(sil_updated)):
+        non_sil.append((tmp, sil_updated[i][0]))
+        tmp = sil_updated[i][1]
+    if sil_updated[-1][1] + a / 2 < ed:
+        non_sil.append((sil_updated[-1][1], ed))
+    if non_sil[0][0] == non_sil[0][1]:
+        del non_sil[0]
+    
+    # Cut the audio
+    ans = []
+    ad = list(aud)
+    for i in tqdm.tqdm(non_sil):
+        ans = ans + ad[int(i[0] * rate):int(i[1] * rate)]
+    
+    print("\n")
+    FunCom("Writing new wav-file","Packing up all of the non-silent part into a neat little wav-file.")
+   # Create a WAV file
+    with wave.open(out_path, 'wb') as wav_file:
+        wav_file.setnchannels(1)  # Mono audio
+        wav_file.setsampwidth(2)  # 2 bytes per sample (16-bit audio)
+        wav_file.setframerate(rate*2)  # Set the sample rate to match the original audio
+        wav_file.writeframes(np.array(ans).astype(np.int16).tobytes())  # Write audio dataFunCom("R")
+    FunCom("Wav-file complete","It's been done...")
+    return non_sil
+#endregion
 
 #endregion
 
@@ -250,6 +364,7 @@ sg.set_options(font=("Arial Bold",10))
 
 download_tab_layout = [
     [sg.Text('Ayo, bro! What are we downloading?')],
+    [sg.Text('This exports mp3- and mp4-files')],
     [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='download_list'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
     [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='download_path'), sg.FolderBrowse()],
     [sg.Checkbox('Download highest res video (No audio)', key='download_video', enable_events=True), sg.Checkbox('Also download audio', key='download_video_audio', visible=False, enable_events=True)],
@@ -258,10 +373,12 @@ download_tab_layout = [
 ]
 remove_silence_tab_layout = [
     [sg.Text('I see you are not a big fan of the Sound of Silence?')],
-    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True ,key='remove_in'), sg.FolderBrowse()],
-    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='remove_out'), sg.FolderBrowse()],
-    [sg.Text('Silence Threshhold'),sg.Input(size=(6, 1), key='remove_threshhold', default_text='40')],
-    [sg.Text('Silence Duration'),sg.Input(size=(6, 1), key='remove_duration', default_text='500')],
+    [sg.Text('This works only with wav-files.')],
+    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/in', key='remove_in'), sg.FolderBrowse()],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/out', key='remove_out'), sg.FolderBrowse()],
+    [sg.Text('Define Silence (intdB)'),sg.Input(size=(8, 1), key='remove_defined', default_text='23')],
+    [sg.Text('Silence Threshhold (int)'),sg.Input(size=(8, 1), key='remove_threshhold', default_text='1')],
+    [sg.Text('Silence Duration (int)'),sg.Input(size=(8, 1), key='remove_duration', default_text='1')],
     [sg.Button('Remove Silence')]
 ]
 settings_tab_layout = [
@@ -289,20 +406,19 @@ while True:
     if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
         break
 
-    # Choose folder
-    if event == 'download_path':
-        path = values['download_path']
+    # Download Audio Tab
+    #region Download Audio Tab
 
-    # The Video checkbox
+    if event == 'download_path':
+        download_path = values['download_path']
+
     if event == 'download_video':
         # Toggle visibility of the 'Also download audio' checkbox
         window['download_video_audio'].update(visible=values['download_video'])
 
-    # Cut up large files checkbox
     if event == 'download_cut_files':
         # Toggle visibility of the input field based on the checkbox state
         window['download_cut_size'].update(visible=values['download_cut_files'])
-
 
     if event == "Check Duration":
         # Guard Clauses
@@ -334,7 +450,7 @@ while True:
             if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
                 total_links += 1
         FunCom(f"\nFound {total_links} links",f"Imma check those durations for ya on all {total_links} videos!")
-        print("\n=======================================================================================================================")
+        PrintSeparator()
 
         #endregion
 
@@ -350,7 +466,7 @@ while True:
                 current_line += 1
                 if link.startswith("##"):
                     print("\n" + link.split('##')[1])
-                    print("\n=======================================================================================================================")
+                    PrintSeparator()
                 continue
             
             if not link or link.startswith('&'):
@@ -385,22 +501,20 @@ while True:
                 current_links += 1
                 links_left = total_links - current_links
                 FunCom(f"\nThe video has been scanned\n\n   [{current_links}/{total_links} videos completed]",f"Ayo, this one's done! Only like {links_left} to go...")
-                print("\n=======================================================================================================================")
+                PrintSeparator()
                 #endregion
             else:
                 # If this is not a video, a comment or audio setting.
                 FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
-                print("\n=======================================================================================================================")
+                PrintSeparator()
 
         FunCom(f"\n   All {total_links} links scanned",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
          # Print the total duration for each author
         for author, duration in author_durations.items():
             print(f"{author}: {FormatSeconds(duration)}")
 
-        print("\n=======================================================================================================================")
+        PrintSeparator()
 
-
-    # Event click download button
     if event == 'Download':
 
         # Guard Clauses
@@ -436,7 +550,7 @@ while True:
             if not link.strip().startswith("#") and not link.strip().startswith("&") and re.search(r'\byoutube.com\b', link) or re.search(r'\byoutu.be\b', link): 
                 total_links += 1
         FunCom(f"\nFound {total_links} links",f"Readying up for downloading {total_links} thingies!")
-        print("\n=======================================================================================================================")
+        PrintSeparator()
 
         #endregion
 
@@ -450,7 +564,7 @@ while True:
                 current_line += 1
                 if link.startswith("##"):
                     print("\n" + link.split('##')[1])
-                    print("\n=======================================================================================================================")
+                    PrintSeparator()
                 continue
             
             if not link or link.startswith('&'):
@@ -475,9 +589,9 @@ while True:
                 #region Path Variables
                 authorName = re.sub('[\W_]+', '', video.author)
 
-                fileName = GenerateUniqueFileName(f"{path}/{authorName}", authorName)
+                fileName = GenerateUniqueFileName(f"{download_path}/{authorName}", authorName)
 
-                filePath = f"{path}/{authorName}/{fileName}"
+                filePath = f"{download_path}/{authorName}/{fileName}"
                 #endregion
                 
                 if not values['download_video'] or values['download_video'] and values['download_video_audio']:
@@ -564,13 +678,65 @@ while True:
                 current_links += 1
                 links_left = total_links - current_links
                 FunCom(f"\nThe job \"{fileName}\" has been completed!\n\n   [{current_links}/{total_links} jobs completed]",f"Ayo, this one's done! Only like {links_left} to go...")
-                print("\n=======================================================================================================================")
+                PrintSeparator()
                 #endregion
             else:
                 # If this is not a video, a comment or audio setting.
                 FunCom(f"\n\"{link}\" isn't a YouTube link!",f"Heeeeeyy, wait a minute... \"{link}\" isn't a YouTube link you sillybilly!")
-                print("\n=======================================================================================================================")
+                PrintSeparator()
 
         FunCom(f"\n   All {total_links} jobs done",f"Heeeeyyy, 0 to go means I'm finished with all {total_links} now! :D")
-        print("\n=======================================================================================================================")
+        PrintSeparator()
+    #endregion
+
+    # Remove Silence Tab
+    #region Remove Silence Tab
+    if event == 'remove_in':
+        remove_in = values['remove_in']
+
+    if event == 'remove_out':
+        remove_out = values['remove_out']
+
+    remove_defined = int(values['remove_defined'])
+    remove_threshhold = int(values['remove_threshhold'])
+    remove_duration = int(values['remove_duration'])
+
+    if event == 'Remove Silence':
+        remove_in = values['remove_in']
+        remove_out = values['remove_out']
+         # Guard Clauses
+        #region Guard Clauses
+        if not values['remove_in']:
+            FunCom("Please select an input directory","I need something to remove the silence from. Gimme a folder with some files in it.")
+            continue
+
+        if not values['remove_out']:
+            FunCom("Please select an output directory","And where excactly am I supposed to put the stuff after I've removed the audio from it?")
+            continue
+        
+        print("")
+        FunCom("Removing Silence", "There will be no silence left alive, when I am done here!")
+        FunCom(f"Found {len(os.listdir(remove_in))} files",f"I found {len(os.listdir(remove_in))} files to convert for you.")
+        PrintSeparator()
+        
+        # Iterate through files in the input directory
+        for filename in os.listdir(remove_in):
+            if filename.endswith(".wav"):
+                print("")
+                FunCom(f"Starting removal proces on \"{filename}\"","There shall be no silence, {filename}!")
+                input_file = f"{remove_in}/{filename}"
+                output_file = f"{remove_out}/{filename}"
+                detected_silence = detect_silence(input_file,remove_threshhold)
+                remove_silence(input_file, detected_silence, remove_duration, output_file)
+                PrintSeparator()
+            else:
+                FunCom(f"{filename} is not a wav-file",f"{filename} isn't a wav-file you dumdum. Luckily for you, I can just ignore stuff like that.")
+                PrintSeparator()
+        #endregion
+
+        FunCom("\nRemoval Complete", "They. Are. ALL. DEAD!")
+        PrintSeparator()
+        
+
+    #endregion
 window.close()

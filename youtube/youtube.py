@@ -273,8 +273,13 @@ def CloseClips(list):
 
 def detect_silence(path, time):
     FunCom("Detecting Silence", "Silence, I don't know who you are, or where you are, but I will find you... And I will kill you.")
-    command = f"ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
-    out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    try:
+        command = f"youtube/ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
+        out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except:
+        command = f"ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
+        out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    
     stdout, stderr = out.communicate()
     s = stdout.decode("utf-8")
     k = s.split('[silencedetect @')
@@ -291,11 +296,9 @@ def detect_silence(path, time):
             try:
                 end.append(float(x))
             except ValueError:
-                print(f"ERROR: x = {x}")
                 try:
                     decimal_part = x.split("[")[0].strip()
                     end.append(float(decimal_part))
-                    print("Error fixed")
                 except:
                     print(f"ERROR: decimal_part = {decimal_part}")
                     continue
@@ -307,11 +310,9 @@ def detect_silence(path, time):
             try:
                 start.append(float(x))
             except ValueError:
-                print(f"ERROR: x = {x}")
                 try:
                     decimal_part = x.split("[")[0].strip()
                     start.append(float(decimal_part))
-                    print("Error fixed")
                 except:
                     print(f"ERROR: decimal_part = {decimal_part}")
                     continue
@@ -348,7 +349,7 @@ def remove_silence(file, sil, keep_sil, out_path):
         del non_sil[0]
     
     # Cut the audio
-    print('Slicing started')
+    FunCom("Slicing Started", "I'm chopping up them audio clips.")
     ans = []
     ad = list(aud)
     for i in tqdm(non_sil, desc='Writing WAV', unit='chunk'):
@@ -383,8 +384,8 @@ download_tab_layout = [
 remove_silence_tab_layout = [
     [sg.Text('I see you are not a big fan of the Sound of Silence?')],
     [sg.Text('This works only with wav-files.')],
-    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/in', key='remove_in'), sg.FolderBrowse()],
-    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True, default_text = 'C:/Users/chris/Downloads/dir/out', key='remove_out'), sg.FolderBrowse()],
+    [sg.Text('Select input location'), sg.In(size=(38,1), enable_events=True, default_text = '', key='remove_in'), sg.FolderBrowse()],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True, default_text = '', key='remove_out'), sg.FolderBrowse()],
     [sg.Text('Define Silence (intdB)'),sg.Input(size=(8, 1), key='remove_defined', default_text='23')],
     [sg.Text('Silence Threshhold (int)'),sg.Input(size=(8, 1), key='remove_threshhold', default_text='2')],
     [sg.Text('Silence Duration (int)'),sg.Input(size=(8, 1), key='remove_duration', default_text='1')],
@@ -392,7 +393,7 @@ remove_silence_tab_layout = [
 ]
 settings_tab_layout = [
     [sg.Text('You don\'t like MY settings? Oh, okay. Yeah, that\'s fine. I have no problem with that.')],
-    [sg.Checkbox('You want my funny commentary?', key='fun_com')],
+    [sg.Checkbox('You want my funny commentary? (Warning, I speak A LOT...)', key='fun_com')],
     [sg.Text('Error log path'),sg.Input(size=(55, 1), key='error_path', default_text=f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")]
 ]
 
@@ -613,7 +614,7 @@ while True:
     
                         DownloadVideo(video.streams.filter(only_audio=True).first(),fileName)
     
-                        FunCom("\nDownload complete","\nI'm dooooone!")
+                        FunCom("\nDownload complete","I'm dooooone!")
     
                         FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")
                         #endregion
@@ -651,7 +652,7 @@ while True:
     
                             
                             # Exporting audio files
-                            FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies! Wait, is that you, MoviePy?")
+                            FunCom("Writing new audiofiles", "Oh look! The original audioclip had babies! Wait, is that you, MoviePy?\n")
                             
                             for i in range(len(clip_list)):
                                 file_name = f"{filePath}-{i+1}.mp3"
@@ -724,25 +725,32 @@ while True:
             
             print("")
             FunCom("Removing Silence", "There will be no silence left alive, when I am done here!")
-            FunCom(f"Found {len(os.listdir(remove_in))} files",f"I found {len(os.listdir(remove_in))} files to convert for you.")
+            file_count = len(os.listdir(remove_in))
+            FunCom(f"Found {file_count} files",f"I found {file_count} files to convert for you.")
             PrintSeparator()
             
+            current_file = 0
             # Iterate through files in the input directory
             for filename in os.listdir(remove_in):
                 if filename.endswith(".wav"):
+                    current_file += 1
                     print("")
                     FunCom(f"Starting removal proces on \"{filename}\"","There shall be no silence, {filename}!")
                     input_file = f"{remove_in}/{filename}"
-                    output_file = f"{remove_out}/{filename}"
+                    output_file = f"{remove_out}/NoSil_{filename}"
                     detected_silence = detect_silence(input_file,remove_threshhold)
                     remove_silence(input_file, detected_silence, remove_duration, output_file)
+                    NewLine()
+                    FunCom(f"   [{current_file}/{file_count} jobs completed]",f"I have taken out {current_file}/{file_count} now.")
                     PrintSeparator()
                 else:
+                    file_count -= 1
+                    NewLine()
                     FunCom(f"{filename} is not a wav-file",f"{filename} isn't a wav-file you dumdum. Luckily for you, I can just ignore stuff like that.")
                     PrintSeparator()
             #endregion
     
-            FunCom("\nRemoval Complete", "They. Are. ALL. DEAD!")
+            FunCom(f"\nRemoval from all {file_count} files complete", "They. Are. ALL. DEAD!")
             PrintSeparator()
         #endregion
 

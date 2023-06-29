@@ -5,7 +5,6 @@ import math
 from tqdm import tqdm
 from pytube import YouTube
 from moviepy.editor import *
-sg.theme('Dark')
 
 # Print logo
 #region Print ASCII art. I put it in a function to collapse it all.
@@ -246,14 +245,29 @@ def CloseClips(list):
 
 # Create the Window
 #region Create the Window
+sg.theme('DarkTanBlue')
+sg.set_options(font=("Arial Bold",10))
+
+download_tab_layout = [
+    [sg.Text('Ayo, bro! What are we downloading?')],
+    [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-PATH-'), sg.FolderBrowse()],
+    [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
+    [sg.Checkbox('Download highest res video (No audio)', key='-DOWNLOAD_VIDEO-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
+    [sg.Checkbox('Cut up large files', key='-CUT_UP_FILES-', enable_events=True), sg.Input(size=(15, 1), key='-CUT_SIZE-', visible=False)],
+    [sg.Checkbox('You want my funny commentary?', key='-FUN_COM-')],
+    [sg.Button('Download'), sg.Button('Check Duration')]
+]
+remove_silence_tab_layout = [
+    [sg.Text('I see you are not a big fan of the Sound of Silence?')]
+]
+
+download_tab = sg.Tab("Download Audio", download_tab_layout)
+remove_silence_tab = sg.Tab("Remove Silence", remove_silence_tab_layout)
+
+tab_group = sg.TabGroup([[download_tab,remove_silence_tab]])
+
 layout = [
-            [sg.Text('Ayo, bro! What are we downloading?')],
-            [sg.Text('Select output location'), sg.In(size=(38,1), enable_events=True ,key='-PATH-'), sg.FolderBrowse()],
-            [sg.Text('Select .txt file with YouTube links (line separated)'), sg.InputText(size=(15,1), key='-FILE-'), sg.FileBrowse(file_types=(('Text Files', '*.txt'),))],
-            [sg.Checkbox('Download highest res video (No audio)', key='-DOWNLOAD_VIDEO-', enable_events=True), sg.Checkbox('Also download audio', key='-DOWNLOAD_AUDIO-', visible=False, enable_events=True)],
-            [sg.Checkbox('Cut up large files', key='-CUT_UP_FILES-', enable_events=True), sg.Input(size=(15, 1), key='-CUT_SIZE-', visible=False)],
-            [sg.Checkbox('You want my funny commentary?', key='-FUN_COM-')],
-            [sg.Button('Download'), sg.Button('Check Duration')]
+    [tab_group]
 ]
 
 window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)

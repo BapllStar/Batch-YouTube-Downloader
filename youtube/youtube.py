@@ -1,20 +1,16 @@
-# Download audio
-import PySimpleGUI as sg
-import re
 import os
-import math
-from tqdm import tqdm
-from pytube import YouTube
-from moviepy.editor import *
-
-# Remove silence
-from scipy.io import wavfile
-from scipy.io.wavfile import read, write
+import re
 import subprocess
 from os import listdir
-import tqdm
+import math
 import numpy as np
 import wave
+from scipy.io import wavfile
+from scipy.io.wavfile import read, write
+from moviepy.editor import *
+from pytube import YouTube
+from tqdm import tqdm
+import PySimpleGUI as sg
 
 # Print logo
 #region Print ASCII art. I put it in a function to collapse it all.
@@ -320,7 +316,18 @@ def detect_silence(path, time):
     return list(zip(start, end))
 
 def remove_silence(file, sil, keep_sil, out_path):
-    FunCom("Gathering non-silent parts","I'm finding all that non-silence now. Without it, the silence will die.")
+    '''
+    This function removes silence from the audio.
+    
+    Input: 
+    file = Input audio file path
+    sil = List of silence time slots that need to be removed
+    keep_sil = Time to keep as allowed silence after removing silence
+    out_path = Output path of audio file
+    
+    Returns:
+    Non-silent patches and saves the new audio in the output path as a WAV file.
+    '''
     rate, aud = read(file)
     a = float(keep_sil) / 2
     sil_updated = [(i[0] + a, i[1] - a) for i in sil]
@@ -338,20 +345,19 @@ def remove_silence(file, sil, keep_sil, out_path):
         del non_sil[0]
     
     # Cut the audio
+    print('Slicing started')
     ans = []
     ad = list(aud)
-    for i in tqdm.tqdm(non_sil):
-        ans = ans + ad[int(i[0] * rate):int(i[1] * rate)]
+    for i in tqdm(non_sil, desc='Writing WAV', unit='chunk'):
+        ans += ad[int(i[0] * rate):int(i[1] * rate)]
     
-    print("\n")
-    FunCom("Writing new wav-file","Packing up all of the non-silent part into a neat little wav-file.")
-   # Create a WAV file
+    # Create a WAV file
     with wave.open(out_path, 'wb') as wav_file:
         wav_file.setnchannels(1)  # Mono audio
         wav_file.setsampwidth(2)  # 2 bytes per sample (16-bit audio)
         wav_file.setframerate(rate*2)  # Set the sample rate to match the original audio
-        wav_file.writeframes(np.array(ans).astype(np.int16).tobytes())  # Write audio dataFunCom("R")
-    FunCom("Wav-file complete","It's been done...")
+        wav_file.writeframes(np.array(ans).astype(np.int16).tobytes())  # Write audio data
+    
     return non_sil
 #endregion
 

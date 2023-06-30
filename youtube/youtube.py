@@ -3,6 +3,7 @@ import re
 import subprocess
 import traceback
 import sys
+import webbrowser
 from os import listdir
 import math
 import numpy as np
@@ -393,28 +394,41 @@ remove_silence_tab_layout = [
 ]
 settings_tab_layout = [
     [sg.Text('You don\'t like MY settings? Oh, okay. Yeah, that\'s fine. I have no problem with that.')],
-    [sg.Checkbox('You want my funny commentary? (Warning, I speak A LOT...)', key='fun_com')],
+    [sg.Checkbox('You want my (not) funny commentary? (Warning, I speak A LOT...)', key='fun_com')],
     [sg.Text('Error log path'),sg.Input(size=(55, 1), key='error_path', default_text=f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")]
+]
+about_tab_layout = [
+    [sg.Text("Hello!\n\nMy name is Chriss and I run the YouTube channel Bapll. We love doing\nAI voice stuff, but training so many AI\'srequires a lot of time in downloading\nand editing voice sample. I made this program to make it easier to gather high\nquality samples.\n\nI hope you find this tool useful!")],
+    [sg.Text("Socials: "),sg.Button('Discord'),sg.Button('YouTube'),sg.Button('Patreon')]
 ]
 
 download_tab = sg.Tab("Download Audio", download_tab_layout)
 remove_silence_tab = sg.Tab("Remove Silence", remove_silence_tab_layout)
 settings_tab = sg.Tab("Settings",settings_tab_layout)
+about_tab = sg.Tab("About",about_tab_layout)
 
-tab_group = sg.TabGroup([[download_tab,remove_silence_tab,settings_tab]])
+tab_group = sg.TabGroup([[download_tab,remove_silence_tab,settings_tab,about_tab]])
 
 layout = [
     [tab_group]
 ]
 
 window = sg.Window('Bapll\'s Batch Youtube Downloader', layout)
+
+# Set the path to the icon file
+icon_path = "icon.ico"
+
+# Change the window's icon
+window.set_icon(icon_path)
+
+
 #endregion
 while True:
     event, values = window.read()
     try:
         if event == sg.WIN_CLOSED:  # if user closes window or clicks cancel
             break
-    
+            
         # Download Audio Tab
         #region Download Audio Tab
     
@@ -752,6 +766,17 @@ while True:
     
             FunCom(f"\nRemoval from all {file_count} files complete", "They. Are. ALL. DEAD!")
             PrintSeparator()
+        #endregion
+
+        # About
+        #region About
+        if event == 'Discord':
+            webbrowser.open('https://discord.com/invite/rbk3RCJPda')
+        if event == 'YouTube':
+            webbrowser.open('https://www.youtube.com/channel/UC6c-iFvwQJ_qO9x7lQwNFng')
+        if event == 'Patreon':
+            webbrowser.open('https://www.patreon.com/user?u=83677185')
+            
         #endregion
 
     except Exception as e:

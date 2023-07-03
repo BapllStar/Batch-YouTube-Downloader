@@ -728,7 +728,7 @@ while True:
     
                         # Set up the tqdm progress bar
                         progress_bar = tqdm(total=100, unit='%', ncols=80, bar_format='Downloading:  {l_bar}{bar}{r_bar}', initial=0)
-                        DownloadVideo(video.streams.order_by('resolution').desc().first())
+                        DownloadVideo(video.streams.order_by('resolution').desc().first(),fileName)
     
                         FunCom("\nDownload complete","\nI'm fiiiiiiniiiished!")
                         FunCom(f"   path: \"{filePath}.mp4\"",f"I put it here: \"{filePath}.mp4\"")

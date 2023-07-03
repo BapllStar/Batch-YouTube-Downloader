@@ -146,6 +146,8 @@ def GetAudioOptions():
     TryRemove(audio_options,"|")
     TryRemove(audio_options,"/")
     TryRemove(audio_options,"\\")
+    TryRemove(audio_options,"[")
+    TryRemove(audio_options,"]")
     return audio_options
 
 def TryRemove(main_string,search_string):

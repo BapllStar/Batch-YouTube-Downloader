@@ -142,13 +142,23 @@ def GetAudioOptions():
         next_line = youtube_links[current_line + 1].strip()
         if next_line.startswith('&'):
             audio_options = next_line[1:]
+    TryRemove(audio_options," ")
+    TryRemove(audio_options,"|")
+    TryRemove(audio_options,"/")
+    TryRemove(audio_options,"\\")
     return audio_options
+
+def TryRemove(main_string,search_string):
+    try:
+        main_string.replace(search_string, "")
+    except:
+        pass
 
 def ApplyAudioOptions(audio_clip, audio_options):
     FunCom(f"Applying Audio Options: \"{audio_options}\" using MoviePy",f"\"{audio_options}\"\n^ Ahem! What is this? Well, I'm not doing that... MOVIEPYYY!")
 
     # Split the audio options based on '&' separator
-    options_list = audio_options.split('& ')
+    options_list = audio_options.split('&')
     
     # Set the duration of the audio clip
     clip_duration = audio_clip.duration
@@ -158,7 +168,7 @@ def ApplyAudioOptions(audio_clip, audio_options):
     subclip_list = []
 
     # Add the audio before the first start_time
-    post = ConvertToSeconds(options_list[0].split(' - ')[0], clip_duration)
+    post = ConvertToSeconds(options_list[0].split('-')[0], clip_duration)
     if post < 0 or post > clip_duration:
         FunCom(f"Cutting post ({post}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({clip_duration})!")
     if post > 0 and post < clip_duration:
@@ -169,8 +179,8 @@ def ApplyAudioOptions(audio_clip, audio_options):
     
     # Iterate over the options and apply the cutting
     for i in range(len(options_list) - 1):
-        start_time = ConvertToSeconds(options_list[i].split(' - ')[1], clip_duration)
-        end_time = ConvertToSeconds(options_list[i+1].split(' - ')[0], clip_duration)
+        start_time = ConvertToSeconds(options_list[i].split('-')[1], clip_duration)
+        end_time = ConvertToSeconds(options_list[i+1].split('-')[0], clip_duration)
         
         # Ensure the start and end times are within the duration
         start_time = min(start_time, clip_duration)
@@ -190,7 +200,7 @@ def ApplyAudioOptions(audio_clip, audio_options):
 
     
     # Add the audio after the last end_time        
-    post = ConvertToSeconds(options_list[-1].split(' - ')[1], clip_duration)
+    post = ConvertToSeconds(options_list[-1].split('-')[1], clip_duration)
     if post < 0 or post > clip_duration:
         FunCom(f"Cutting post ({post}) is out of bounds ({clip_duration})", f"Houston, we have a problem. It seems that the cutting post ({post}) is trying to escape the duration of the video ({clip_duration})!")
     if post > 0 and post < clip_duration:
@@ -211,11 +221,11 @@ def GetCutDuration(duration):
         FunCom(f"Accounting for: \"{audio_options}\"",f"I see you have some Audio Options here... \"{audio_options}\". You're not using all of the audio?")
 
         # Split the audio options based on '&' separator
-        options_list = audio_options.split('& ')
+        options_list = audio_options.split('&')
         
         # Iterate over the options and apply the cutting
         for i in range(len(options_list)):
-            times_list = options_list[i].split(' - ')
+            times_list = options_list[i].split('-')
             start_time = ConvertToSeconds(times_list[0], duration)
             end_time = ConvertToSeconds(times_list[1], duration)
             cut_time += end_time - start_time

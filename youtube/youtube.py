@@ -119,7 +119,10 @@ def GenerateUniqueFileName(directory, base_filename):
     counter = 1
     filename = base_filename + f"-{counter}"
     if not os.path.exists(directory):
-        os.mkdir(directory)
+        try:
+            os.mkdir(directory)
+        except:
+            os.makedirs(directory, exist_ok=True)
     while any(file.startswith(filename) for file in os.listdir(directory)):
         counter += 1
         filename = f"{base_filename}-{counter}"
@@ -240,7 +243,7 @@ def GetCutDuration(duration):
 def DownloadVideo(video, fileName):
     try:
         # Download the video
-        video.download(filename=fileName + ".mp4", output_path=f"{download_path}/{authorName}")
+        video.download(filename=fileName + ".mp4", output_path=f"{dirPath}")
 
         # Replace the progress bar with a completion message
         progress_bar.bar_format = f"Downloaded {fileName}.mp4 successfully"
@@ -490,6 +493,7 @@ while True:
             #endregion
     
             author_durations = {}
+            sub_folder = ""
     
             # For every link in the file
             for link in youtube_links:
@@ -502,6 +506,10 @@ while True:
                     if link.startswith("##"):
                         print("\n" + link.split('##')[1])
                         PrintSeparator()
+                    continue
+
+                if link.startswith("/"):
+                    current_line += 1
                     continue
                 
                 if not link or link.startswith('&'):
@@ -586,6 +594,8 @@ while True:
                     total_links += 1
             FunCom(f"\nFound {total_links} links",f"Readying up for downloading {total_links} thingies!")
             PrintSeparator()
+
+            sub_folder = ""
     
             #endregion
     
@@ -600,6 +610,18 @@ while True:
                     if link.startswith("##"):
                         print("\n" + link.split('##')[1])
                         PrintSeparator()
+                    continue
+
+                if link.startswith("/"):
+                    current_line += 1
+                    sub_folder = re.sub('[\W_]+', '', link)
+                    if sub_folder != "":
+                        NewLine()
+                        FunCom(f"Changed subfolder to {sub_folder}",f"Heading over to {sub_folder}.")
+                    else:
+                        NewLine()
+                        FunCom("Changed subfolder to main folder","Going back to base 1.")
+                    PrintSeparator()
                     continue
                 
                 if not link or link.startswith('&'):
@@ -623,10 +645,15 @@ while True:
                     # Define Path Variables
                     #region Path Variables
                     authorName = re.sub('[\W_]+', '', video.author)
+
+                    if sub_folder == "":
+                        dirPath = f"{download_path}/{authorName}"
+                    else:
+                        dirPath = f"{download_path}/{sub_folder}/{authorName}"
     
-                    fileName = GenerateUniqueFileName(f"{download_path}/{authorName}", authorName)
-    
-                    filePath = f"{download_path}/{authorName}/{fileName}"
+                    fileName = GenerateUniqueFileName(f"{dirPath}", authorName)
+
+                    filePath = f"{dirPath}/{fileName}"
                     #endregion
                     
                     if not values['download_video'] or values['download_video'] and values['download_video_audio']:

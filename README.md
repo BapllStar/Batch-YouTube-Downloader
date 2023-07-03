@@ -23,14 +23,13 @@ To use this program, follow the instructions below:
 6. Save the file with a `.txt` extension.
 
 ### Commenting
-
 ```plaintext
 ##Headlines will show up in the console, when the program is running
 #Comments and epty lines will be completely ignored
 ```
 
 ### Basic Download
-Literally just insert the links line separated. That's it...
+Literally just insert the links line separated. That's it... <br />
 Tutorial on how to get free V-Bucks below:
 ```plaintext
 https://www.youtube.com/watch?v=dQw4w9WgXcQ
@@ -43,23 +42,21 @@ https://youtu.be/dQw4w9WgXcQ
 & 0s - 5s & 10s - 1m,5s & 2m - end
 ```
 This will cut out:
-The first 5 seconds (&  - 5s)
-From 00:10 to 01:05 (& 10s - 1m,5s)
-from 02:00 until the end (& 2m - end)
+- The first 5 seconds (`&  - 5s`)
+- From 00:10 to 01:05 (`& 10s - 1m,5s`)
+- from 02:00 until the end (`& 2m - end`)
 
 ### Alternative trimming syntax
-The trimming post (the time mark) is by default 0s.
-This makes you able to write nothing in place of "0s", "0m" or "0h". See example below.
+The trimming post (the time mark) is by default 0s. This makes you able to write nothing in place of `0s`, `0m` or `0h`. See example below:
 ```plaintext
 https://www.youtube.com/watch?v=X3HrBg--wk4
 & - 7s
 ```
+
 ### Commenting options
-There are 6 symbols which you can write freely in the audio options: 
-`" ", "/", "|", "\", "[" and "]"`
-These are here simply to make it easier for you to read your own audio options.
-They provide no actual functionality.
-KEEP IN MIND: the first symbol still needs to be "&".
+There are 6 symbols which you can write freely in the audio options: ` `, `/`, `|`, `\`, `[` and `]`.  <br />
+These are here simply to make it easier for you to read your own audio options. They provide no actual functionality.  <br />
+KEEP IN MIND: the first symbol still needs to be `&`.
 ```plaintext
 https://www.youtube.com/watch?v=3NnIfuvEiec
 & [-7s] & [13s /-/ 17s]
@@ -70,4 +67,15 @@ https://www.youtube.com/watch?v=3NnIfuvEiec
 &||||| /[-]]]]]]]7s]\   //////\\\\[][][][|&|   /[13s - 17s]\ |||||
 ```
 ^ Idk why anyone would want it this complicated, but they can now XD.
+
+### Creating Subfolders
+Normally, the downloaded files are packaged together in folders named after their YouTuber, but you can use subfolders to group those folders into folders you can name yourself. By adding a line and beginning with `/`, you will change the subfolder to that folder.  <br />
+This switches to subfolder called `ThisSubfolder`.
+```plaintext
+/ThisSubfolder
+```
+Writing a lone `/` switches back to the original path.
+```plaintext
+/
+```
 

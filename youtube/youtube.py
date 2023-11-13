@@ -290,18 +290,19 @@ def CloseClips(list):
 def detect_silence(path, time):
     FunCom("Detecting Silence", "Silence, I don't know who you are, or where you are, but I will find you... And I will kill you.")
     try:
-        command = f"youtube/ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
+        command = f"youtube/ffmpeg/bin/ffmpeg.exe -i \"{path}\" -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
         out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except:
-        command = f"ffmpeg/bin/ffmpeg.exe -i {path} -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
+        command = f"ffmpeg/bin/ffmpeg.exe -i \"{path}\" -af silencedetect=n=-{remove_defined}dB:d={str(time)} -f null -"
         out = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     
     stdout, stderr = out.communicate()
     s = stdout.decode("utf-8")
     k = s.split('[silencedetect @')
     if len(k) == 1:
-        # print(stderr)
-        return None
+        print(path)
+        print(stdout)
+        return []
         
     start, end = [], []
     for i in range(1, len(k)):
@@ -348,10 +349,20 @@ def remove_silence(file, sil, keep_sil, out_path):
     Returns:
     Non-silent patches and saves the new audio in the output path as a WAV file.
     '''
+
+    if sil is None:
+        print("No silence detected or error in silence detection.")
+        return []
+
     rate, aud = read(file)
     a = float(keep_sil) / 2
     sil_updated = [(i[0] + a, i[1] - a) for i in sil]
     
+    # Check if sil_updated is empty
+    if not sil_updated:
+        print("No silence intervals after adjustment or no silence detected.")
+        return []
+
     # Convert the silence patch to non-sil patches
     non_sil = []
     tmp = 0
@@ -359,9 +370,12 @@ def remove_silence(file, sil, keep_sil, out_path):
     for i in range(len(sil_updated)):
         non_sil.append((tmp, sil_updated[i][0]))
         tmp = sil_updated[i][1]
+
+    # Check if the last silence interval is before the end of the audio
     if sil_updated[-1][1] + a / 2 < ed:
         non_sil.append((sil_updated[-1][1], ed))
-    if non_sil[0][0] == non_sil[0][1]:
+
+    if non_sil and non_sil[0][0] == non_sil[0][1]:
         del non_sil[0]
     
     # Cut the audio
@@ -577,10 +591,13 @@ while True:
             # Get the file path entered by the user
             file_path = values['download_list']  
     
-    
-            # Read all the YouTube links from the file
-            with open(file_path, 'r') as file:
-                youtube_links = file.readlines()  
+            if re.search(r'\byoutube.com\b', file_path) or re.search(r'\byoutu.be\b', file_path): 
+                # If a youtube link is in the field.
+                youtube_links = [file_path]
+            else:
+                # Read all the YouTube links from the file
+                with open(file_path, 'r') as file:
+                    youtube_links = file.readlines()  
     
             total_lines = len(youtube_links)  # Total number of YouTube links
             current_line = 0  # Initialize current link counter
